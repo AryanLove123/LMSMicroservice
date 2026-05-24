@@ -1,3 +1,6 @@
+const Joi = require('joi');
+const AppError = require('../../../../shared/utils/AppError');
+const { ROLES } = require('../../../../shared/constants/constant');
 class BaseValidator {
     static validate(schema, data) {
         const { error, value } = schema.validate(data, {
@@ -30,12 +33,20 @@ class AuthValidator extends BaseValidator {
     });
 
 
+    static refreshSchema = Joi.object({
+        refreshToken: Joi.string().required(),
+    });
+
     static validateLogin(data) {
         return AuthValidator.validate(AuthValidator.loginSchema, data);
     }
 
     static validateCreateUser(data) {
         return AuthValidator.validate(AuthValidator.createUserSchema, data);
+    }
+
+    static validateRefresh(data) {
+        return AuthValidator.validate(AuthValidator.refreshSchema, data);
     }
 }
 

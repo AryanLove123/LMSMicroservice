@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
-const { ROLES } = require('../../../shared/constants')
+const { ROLES } = require('../../../../shared/constants/constant');
+const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema(
     {
@@ -32,6 +33,7 @@ const userSchema = new mongoose.Schema(
         employeeId: {
             type: String,
             sparse: true,
+            unique: true
         },
         isActive: {
             type: Boolean,
@@ -44,20 +46,14 @@ const userSchema = new mongoose.Schema(
 );
 
 //indexing
-userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
-userSchema.index({ employeeId: 1 });
 
 
 //middleware
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-
+userSchema.pre('save', async function() {
+  if (!this.isModified('password')) return;
   const rounds = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
-
   this.password = await bcrypt.hash(this.password, rounds);
-
-  next();
 });
 
 //Instance Methods 
@@ -65,8 +61,9 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-userSchema.statics.findByEmail = function(email) {
-  return this.findOne({ email: email.toLowerCase() });
+userSchema.statics.findByEmail = function(email, includePassword = false) {
+  const query = this.findOne({ email: email.toLowerCase() });
+  return includePassword ? query.select('+password') : query;
 };
 
 const User = mongoose.model('User', userSchema);
