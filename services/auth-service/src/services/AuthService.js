@@ -1,4 +1,4 @@
-const AppError = require('../../../../shared/AppError');
+const AppError = require('../../../../shared/utils/AppError');
 const User = require('../models')
 class AuthService {
     createUser = async (data) => {
