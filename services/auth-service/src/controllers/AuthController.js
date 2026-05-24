@@ -25,17 +25,6 @@ class AuthController {
         }
     }
 
-    verifyToken = async (req, res, next) => {
-        try {
-            const { token } = req.body;
-            if (!token) return ApiResponse.badRequest(res, 'Token is required');  
-            const result = await this.authService.verifyToken(token);
-            return ApiResponse.ok(res, 'Token verification successful', result);
-        } catch (error) {
-            next(error);
-        }
-    }
-
     refresh = async (req, res, next) => {
         try {
             const { refreshToken } = AuthValidator.validateRefresh(req.body);
@@ -61,6 +50,18 @@ class AuthController {
             // req.user is populated by authenticate middleware
             await this.authService.logoutAll(req.user.userId);
             return ApiResponse.ok(res, 'Logged out from all devices successfully');
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    //Internal Route for nginx
+    verifyToken = async (req, res, next) => {
+        try {
+            const { token } = req.body;
+            if (!token) return ApiResponse.badRequest(res, 'Token is required');  
+            const result = await this.authService.verifyToken(token);
+            return ApiResponse.ok(res, 'Token verification successful', result);
         } catch (error) {
             next(error);
         }
