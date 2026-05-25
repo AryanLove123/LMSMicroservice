@@ -21,6 +21,7 @@ const config = {
   },
   bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS, 10),
   mongodbUri: process.env.MONGODB_URI,
+  rabbitmqUri: process.env.RABBITMQ_URI,
 };
 
 module.exports = config;

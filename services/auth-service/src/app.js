@@ -3,11 +3,11 @@ const createAuthRoutes = require('./routes/AuthRoute');
 const AuthService = require('./services/AuthService');
 const AuthController = require('./controllers/AuthController');
 
-const createApp = (logger) => {
+const createApp = (logger, rabbitMQ = null) => {
     const app = express();
     app.use(express.json());
 
-    const authService = new AuthService(logger);
+    const authService = new AuthService(logger, rabbitMQ);
     const authController = new AuthController(authService);
     const authRoutes = createAuthRoutes(authController);
 
