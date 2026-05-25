@@ -42,7 +42,8 @@ const userSchema = new mongoose.Schema(
         lastLogin: {
             type: Date,
         },
-    }
+    },
+    { timestamps: true }
 );
 
 //indexing
@@ -61,6 +62,7 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
+//Static Methods
 userSchema.statics.findByEmail = function(email, includePassword = false) {
   const query = this.findOne({ email: email.toLowerCase() });
   return includePassword ? query.select('+password') : query;

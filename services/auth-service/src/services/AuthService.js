@@ -5,30 +5,48 @@ const config = require('../config');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const ms = require('ms');
+const { RABBIT_EXCHANGES, RABBIT_ROUTING_KEYS } = require('../../../../shared/constants/constant');
 
 const storeRefreshToken = async (jti, userId, ttlSeconds) => {
     const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
     await RefreshToken.create({ jti, userId, expiresAt });
 };
 class AuthService {
-    constructor(logger) {
+    constructor(logger, mqManager) {
         this.logger = logger;
+        this.mqManager = mqManager;
     }
 
     createUser = async (data) => {
         const exists = await User.findByEmail(data.email);
         if (exists) throw AppError.conflict(`User with email ${data.email} already exists`);
-        const user = await User.create({ ...data, employeeId: data.employeeId || uuidv4() });
+        const employeeId = uuidv4();
+        const user = await User.create({ ...data, employeeId });
+
+        //Publish event to message broker (RabbitMQ) for employee creation
+        await this.mqManager.publish(
+            RABBIT_EXCHANGES.USER_EVENTS,
+            RABBIT_ROUTING_KEYS.USER_CREATED,
+            {
+                userId: user._id.toString(),
+                employeeId: user.employeeId,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                joiningDate: user.createdAt.toISOString(),
+                isActive: user.isActive,
+            }
+        );
         this.logger.info('[AuthService] User created', { userId: user._id, role: user.role });
         return user;
     };
 
-    login = async (data) =>{
-        const {email, password} = data;
+    login = async (data) => {
+        const { email, password } = data;
         const user = await User.findByEmail(email, true);
         if (!user) throw AppError.unauthorized('Invalid email or password');
         if (!user.isActive) throw AppError.forbidden('Account deactivated. Contact your administrator.');
-        
+
         const isValidUser = await user.comparePassword(password);
         if (!isValidUser) throw AppError.unauthorized('Invalid email or password');
 
@@ -127,36 +145,36 @@ class AuthService {
     //Helper Methods//
 
     async _issueTokenPair(user) {
-    const accessTokenJti = uuidv4();
-    const refreshTokenId = uuidv4();
+        const accessTokenJti = uuidv4();
+        const refreshTokenId = uuidv4();
 
-    const basePayload = {
-      userId: user._id.toString(),
-      employeeId: user.employeeId,
-      role: user.role,
-      email: user.email,
-      name: user.name,
-    };
+        const basePayload = {
+            userId: user._id.toString(),
+            employeeId: user.employeeId,
+            role: user.role,
+            email: user.email,
+            name: user.name,
+        };
 
-    const accessToken = jwt.sign(
-      { ...basePayload, jti: accessTokenJti },
-      config.jwt.secret,
-      { expiresIn: config.jwt.expiresIn, issuer: 'leave-management' }
-    );
+        const accessToken = jwt.sign(
+            { ...basePayload, jti: accessTokenJti },
+            config.jwt.secret,
+            { expiresIn: config.jwt.expiresIn, issuer: 'leave-management' }
+        );
 
-    const refreshToken = jwt.sign(
-      { userId: user._id.toString(), type: 'refresh', jti: refreshTokenId },
-      config.jwt.refreshSecret,
-      { expiresIn: config.jwt.refreshExpiresIn, issuer: 'leave-management' }
-    );
+        const refreshToken = jwt.sign(
+            { userId: user._id.toString(), type: 'refresh', jti: refreshTokenId },
+            config.jwt.refreshSecret,
+            { expiresIn: config.jwt.refreshExpiresIn, issuer: 'leave-management' }
+        );
 
-    // Persist refresh token in mongodb with TTL
-    const refreshTtlSeconds = Math.floor(ms(config.jwt.refreshExpiresIn) / 1000);
-    await storeRefreshToken(refreshTokenId,user._id.toString(),refreshTtlSeconds
-    );
+        // Persist refresh token in mongodb with TTL
+        const refreshTtlSeconds = Math.floor(ms(config.jwt.refreshExpiresIn) / 1000);
+        await storeRefreshToken(refreshTokenId, user._id.toString(), refreshTtlSeconds
+        );
 
-    return { accessToken, refreshToken, refreshTokenId, accessTokenJti };
-  }
+        return { accessToken, refreshToken, refreshTokenId, accessTokenJti };
+    }
 }
 
 module.exports = AuthService;

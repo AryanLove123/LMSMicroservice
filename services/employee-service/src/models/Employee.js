@@ -1,6 +1,10 @@
-const { LEAVE_TYPES, LEAVE_COUNT } = require('../../../../shared/constants/constant');
+const mongoose = require('mongoose');
 
-const LeaveBalanceSchema = new Schema(
+const { LEAVE_TYPES, LEAVE_COUNT } = require('../../../../shared/constants/constant');
+const Counter = require('./Counter');
+const {ROLES} = require('../../../../shared/constants/constant');
+
+const LeaveBalanceSchema = new mongoose.Schema(
     {
         type: {
             type: String,
@@ -27,7 +31,7 @@ LeaveBalanceSchema.pre('save', function () {
 });
 
 
-const employeeSchema = new Schema(
+const employeeSchema = new mongoose.Schema(
     {
         userId: {
             type: String,
@@ -36,7 +40,6 @@ const employeeSchema = new Schema(
         },
         employeeCode: {
             type: String,
-            required: true,
             sparse: true,
             unique: true,
         },
@@ -72,10 +75,6 @@ const employeeSchema = new Schema(
             default: null,
             index: true
         },
-        managerName: {
-            type: String,
-            default: null
-        },
         joiningDate: {
             type: Date,
             default: Date.now
@@ -97,4 +96,44 @@ const employeeSchema = new Schema(
     },
     { timestamps: true });
 
-module.exports = { LeaveBalanceSchema, employeeSchema };
+
+//Auto generate employee code before saving
+employeeSchema.pre('save', async function () {
+    if (this.isNew && !this.employeeCode) {
+        const seq = await Counter.nextVal('employeeCode');
+        this.employeeCode = `EMP${String(seq).padStart(4, '0')}`;
+    }
+});
+
+//instance methods
+employeeSchema.methods.getLeaveBalance = function (leaveType) {
+  return this.leaveBalances.find((b) => b.type === leaveType);
+};
+
+employeeSchema.methods.deductLeaveBalance = function (leaveType, days) {
+  const balance = this.getLeaveBalance(leaveType);
+  if (!balance) throw new Error(`Leave type ${leaveType} not found`);
+  if (balance.remaining < days) throw new Error('Insufficient leave balance');
+  balance.used += days;
+  balance.remaining = balance.total - balance.used;
+};
+
+employeeSchema.methods.restoreLeaveBalance = function (leaveType, days) {
+  const balance = this.getLeaveBalance(leaveType);
+  if (!balance) return;
+  balance.used = Math.max(0, balance.used - days);
+  balance.remaining = balance.total - balance.used;
+};
+
+//Static Methods
+employeeSchema.statics.findByUserId = function (userId) {
+  return this.findOne({ userId, isActive: true });
+};
+
+employeeSchema.statics.findTeamByManagerId = function (managerId) {
+  return this.find({ managerId, isActive: true });
+};
+
+const Employee = mongoose.model('Employee', employeeSchema);
+const LeaveBalance = mongoose.model('LeaveBalance', LeaveBalanceSchema);
+module.exports = { Employee, LeaveBalance };
