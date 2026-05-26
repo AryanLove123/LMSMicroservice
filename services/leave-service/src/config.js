@@ -9,6 +9,7 @@ const config = {
     port: process.env.PORT || 3002,
     mongodbUri: process.env.MONGODB_URI,
     rabbitmqUri: process.env.RABBITMQ_URI,
+    employeeServiceUrl: process.env.EMPLOYEE_SERVICE_URL,
 };
 
 module.exports = config;

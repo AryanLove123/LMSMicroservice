@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { LEAVE_TYPES, LEAVE_STATUS } = require('../../../../shared/constants/constant');
 
 const leaveRequestSchema = new mongoose.Schema({
     employeeId: {
