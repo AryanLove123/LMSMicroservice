@@ -25,4 +25,13 @@ const authorize = (roles) => {
     }
 };
 
-module.exports = { authenticate, authorize };
+
+const authorizeOwnerOrManager = (req, res, next) => {
+  const { role, userId } = req.user || {};
+  if (role === 'admin' || role === 'manager') return next();
+  const targetId = req.params.id;
+  if (role === 'employee' && userId == targetId) return next();
+  return next(AppError.forbidden('Access denied'));
+};
+
+module.exports = { authenticate, authorize, authorizeOwnerOrManager };

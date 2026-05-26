@@ -30,11 +30,6 @@ const userSchema = new mongoose.Schema(
             enum: Object.values(ROLES),
             default: ROLES.EMPLOYEE,
         },
-        employeeId: {
-            type: String,
-            sparse: true,
-            unique: true
-        },
         isActive: {
             type: Boolean,
             default: true,

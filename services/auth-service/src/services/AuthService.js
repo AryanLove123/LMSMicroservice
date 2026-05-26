@@ -20,8 +20,7 @@ class AuthService {
     createUser = async (data) => {
         const exists = await User.findByEmail(data.email);
         if (exists) throw AppError.conflict(`User with email ${data.email} already exists`);
-        const employeeId = uuidv4();
-        const user = await User.create({ ...data, employeeId });
+        const user = await User.create({ ...data });
 
         //Publish event to message broker (RabbitMQ) for employee creation
         await this.mqManager.publish(
@@ -29,7 +28,6 @@ class AuthService {
             RABBIT_ROUTING_KEYS.USER_CREATED,
             {
                 userId: user._id.toString(),
-                employeeId: user.employeeId,
                 name: user.name,
                 email: user.email,
                 role: user.role,
@@ -150,7 +148,6 @@ class AuthService {
 
         const basePayload = {
             userId: user._id.toString(),
-            employeeId: user.employeeId,
             role: user.role,
             email: user.email,
             name: user.name,
