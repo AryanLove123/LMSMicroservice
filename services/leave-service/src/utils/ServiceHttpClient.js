@@ -1,7 +1,6 @@
 const axios = require('axios');
 const AppError = require('../../../../shared/utils/AppError');
-const circuitBreaker = require('../../../../shared/utils/CircuitBreaker');
-const { config } = require('winston');
+const CircuitBreaker = require('../../../../shared/utils/CircuitBreaker');
 
 class ServiceHttpClient {
     constructor(baseURL, serviceName, logger) {

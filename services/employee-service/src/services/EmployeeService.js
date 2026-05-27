@@ -54,7 +54,7 @@ class EmployeeService {
     if (requestingUser.role !== 'admin') {
       throw AppError.forbidden('Only admin can update employee records');
     }
-    const {managerId, managerName} = resolveManager(data.managerId);
+    const {managerId, managerName} = await this.resolveManager(data.managerId);
     employee.managerId = managerId;
     employee.managerName = managerName;
     await employee.save();
@@ -71,6 +71,14 @@ class EmployeeService {
     employee.isActive = false;
     await employee.save();
     this.logger.info(`[EmployeeService] Employee deactivated — _id: ${id}`);
+  }
+
+  async resolveManager(managerId) {
+    const manager = await Employee.findById(managerId);
+    if (!manager || manager.role !== 'manager' || !manager.isActive) {
+      throw AppError.badRequest('Invalid managerId');
+    }
+    return { managerId: manager._id, managerName: manager.name };
   }
 }
 

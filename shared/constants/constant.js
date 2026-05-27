@@ -25,14 +25,17 @@ const LEAVE_STATUS = {
 
 const RABBIT_EXCHANGES = {
   USER_EVENTS: 'user_events',
+  LEAVE_EVENTS: 'leave_events',
 }
 
 const RABBIT_QUEUES = {
   USER_CREATED: 'user_created',
+  LEAVE_REQUESTED: 'leave_requested',
 }
 
 const RABBIT_ROUTING_KEYS = {
   USER_CREATED: 'user.created',
+  LEAVE_REQUESTED: 'leave.requested',
 }
 
 

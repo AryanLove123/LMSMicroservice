@@ -7,9 +7,10 @@ const authenticate = (req, res, next) => {
         return next(AppError.unauthorized('Authorization token missing'));
     }   
     const token = authHeader.split(' ')[1];
+    req.user = { rawToken: token };
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded;
+        req.user = { ...req.user, ...decoded };
         next();
     } catch (err) {
         return next(AppError.unauthorized('Invalid token'));

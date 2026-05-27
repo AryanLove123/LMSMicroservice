@@ -3,7 +3,7 @@ const createLeaveRoutes = require('./routes/LeaveRoute');
 const LeaveService = require('./services/LeaveService');
 const LeaveController = require('./controllers/LeaveController');
 const ServiceHttpClient = require('./utils/ServiceHttpClient');
-const { config } = require('./config');
+const config = require('./config');
 
 const createApp = async (logger, rabbitMQ = null) => {
     const app = express();
