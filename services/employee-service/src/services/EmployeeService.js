@@ -54,7 +54,7 @@ class EmployeeService {
     if (requestingUser.role !== 'admin') {
       throw AppError.forbidden('Only admin can update employee records');
     }
-    const {managerId, managerName} = await this.resolveManager(data.managerId);
+    const { managerId, managerName } = await this.resolveManager(data.managerId);
     employee.managerId = managerId;
     employee.managerName = managerName;
     await employee.save();
@@ -80,6 +80,17 @@ class EmployeeService {
     }
     return { managerId: manager._id, managerName: manager.name };
   }
+
+  async deductLeave(employeeId, leaveType, days) {
+    const employee = await Employee.findByUserId(employeeId);
+    if (!employee) throw AppError.notFound('Employee not found for deduction');
+
+    employee.deductLeaveBalance(leaveType, days);
+    await employee.save();
+    this.logger.info(`[EmployeeService] Leave balance deducted — employeeId: ${employeeId}, leaveType: ${leaveType}, days: ${days}`);
+    return employee.leaveBalances;
+  }
+
 }
 
 module.exports = EmployeeService;

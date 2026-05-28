@@ -3,6 +3,7 @@ const createEmployeeRoutes = require('./routes/EmployeeRoute');
 const EmployeeService = require('./services/EmployeeService');
 const EmployeeController = require('./controllers/EmployeeController');
 const {UserCreatedConsumer} = require('./services/UserCreatedConsumer');
+const SagaConsumer = require('./saga/SagaConsumer');
 
 const createApp = async (logger, rabbitMQ = null) => {
     const app = express();
@@ -13,6 +14,9 @@ const createApp = async (logger, rabbitMQ = null) => {
     const empRoutes = createEmployeeRoutes(empController);
     const userCreatedConsumer = new UserCreatedConsumer(empService, rabbitMQ, logger);
     await userCreatedConsumer.startListening(); 
+
+    const sagaConsumer = new SagaConsumer(rabbitMQ, logger, empService);
+    await sagaConsumer.startListening();
     app.use('/api/employees', empRoutes);
 
     return app;

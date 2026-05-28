@@ -17,7 +17,7 @@ class LeaveController {
   reviewLeave = async (req, res, next) => {
     try {
       const body = LeaveValidator.validateReviewLeave(req.body);
-      const reviewedLeave = await this.leaveService.reviewLeave(req.params.id, body.action, req.user);
+      const reviewedLeave = await this.leaveService.reviewLeave(req.user.userId, req.params.id, body);
       return ApiResponse.ok(res, 'Leave request reviewed successfully', reviewedLeave);
     } catch (error) { next(error); }
 

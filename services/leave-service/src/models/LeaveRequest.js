@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { LEAVE_TYPES, LEAVE_STATUS } = require('../../../../shared/constants/constant');
+const { LEAVE_TYPES, LEAVE_STATUS, SAGA_STATUS } = require('../../../../shared/constants/constant');
 
 const leaveRequestSchema = new mongoose.Schema({
     employeeId: {
@@ -30,11 +30,20 @@ const leaveRequestSchema = new mongoose.Schema({
         trim: true,
         maxLength: [500, 'Reason cannot exceed 500 characters'],
     },
-    status: {   
+    status: {
         type: String,
         enum: Object.values(LEAVE_STATUS),
         default: LEAVE_STATUS.PENDING,
         index: true
+    },
+    reviewedAt: {
+        type: Date,
+        default: null
+    },
+    reviewComments: {
+        type: String,
+        default: null,
+        maxlength: 500
     },
     approvedAt: {
         type: Date,
@@ -47,10 +56,31 @@ const leaveRequestSchema = new mongoose.Schema({
         trim: true,
         maxLength: [500, 'Cancelled reason cannot exceed 500 characters'],
     },
-}, { timestamps: true });   
+    originalStartDate: {
+        type: Date,
+        default: null
+    },
+    originalNumberOfDays: {
+        type: Number,
+        default: null
+    },
+    trimNote: {
+        type: String,
+        default: null
+    },
+    sagaId: {
+        type: String,
+        default: null,
+    },
+    sagaStatus: {
+        type: String,
+        enum: Object.values(SAGA_STATUS),
+        default: null,
+    }
+}, { timestamps: true });
 
 
-leaveRequestSchema.statics.findOverlappingLeaves = function(employeeId, startDate, endDate) {
+leaveRequestSchema.statics.findOverlappingLeaves = function (employeeId, startDate, endDate) {
     return this.findOne({
         employeeId,
         status: { $in: [LEAVE_STATUS.PENDING, LEAVE_STATUS.APPROVED] },
