@@ -1,4 +1,4 @@
-const ApiResponse = require('../../../../shared/utils/ApiResponse');  
+const ApiResponse = require('../../../../shared/utils/ApiResponse');
 
 class EmployeeController {
   constructor(employeeService) {
@@ -6,6 +6,10 @@ class EmployeeController {
   }
 
   getEmployeeById = async (req, res, next) => {
+    console.log('[Controller] getEmployeeById called');
+    console.log('[Controller] req.isInternalService:', req.isInternalService);
+    console.log('[Controller] req.user:', req.user);       // will be undefined on internal calls
+    console.log('[Controller] req.params.id:', req.params.id);
     try {
       const employee = await this.employeeService.getEmployeeById(req.params.id);
       return ApiResponse.ok(res, 'Employee retrieved', employee);

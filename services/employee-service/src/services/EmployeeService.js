@@ -15,8 +15,8 @@ class EmployeeService {
     return employee;
   }
 
-  async getEmployeeById(id) {
-    const employee = await Employee.findOne({ _id: id, isActive: true });
+  async getEmployeeById(userId) {
+    const employee = await Employee.findByUserId(userId);
     if (!employee) throw AppError.notFound('Employee not found');
     return employee;
   }
@@ -47,8 +47,8 @@ class EmployeeService {
     return managers;
   }
 
-  async updateEmployee(id, data, requestingUser) {
-    const employee = await Employee.findById(id);
+  async updateEmployee(userId, data, requestingUser) {
+    const employee = await Employee.findByUserId(userId);
     if (!employee || !employee.isActive) throw AppError.notFound('Employee not found');
 
     if (requestingUser.role !== 'admin') {
@@ -58,7 +58,7 @@ class EmployeeService {
     employee.managerId = managerId;
     employee.managerName = managerName;
     await employee.save();
-    this.logger.info(`[EmployeeService] Employee updated — _id: ${id}`);
+    this.logger.info(`[EmployeeService] Employee updated — _id: ${employee._id}`);
     return employee;
   }
 
@@ -74,11 +74,11 @@ class EmployeeService {
   }
 
   async resolveManager(managerId) {
-    const manager = await Employee.findById(managerId);
+    const manager = await Employee.findByUserId(managerId);
     if (!manager || manager.role !== 'manager' || !manager.isActive) {
       throw AppError.badRequest('Invalid managerId');
     }
-    return { managerId: manager._id, managerName: manager.name };
+    return { managerId: manager.userId, managerName: manager.name };
   }
 
   async deductLeave(employeeId, leaveType, days) {

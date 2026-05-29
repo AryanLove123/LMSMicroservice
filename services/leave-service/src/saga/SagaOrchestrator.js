@@ -57,8 +57,16 @@ class SagaOrchestrator {
                 RABBIT_ROUTING_KEYS.NOTIFY_LEAVE_REJECTION,
                 {
                     sagaId,
-                    leaveId: LeaveRequest._id,
-                    employeeId: LeaveRequest.employeeId,
+                    leaveId:       LeaveRequest._id,
+                    employeeId:    LeaveRequest.employeeId,
+                    employeeName:  LeaveRequest.employeeName,
+                    employeeEmail: LeaveRequest.employeeEmail,
+                    leaveType:     LeaveRequest.leaveType,
+                    startDate:     LeaveRequest.startDate,
+                    endDate:       LeaveRequest.endDate,
+                    numberOfDays:  LeaveRequest.numberOfDays,
+                    reason:        LeaveRequest.reason,
+                    reviewComments: LeaveRequest.reviewComments,
                 }
             );
             this.logger.info('[SagaOrchestrator] Rejection event published for notification to RabbitMQ', { sagaId, leaveId: LeaveRequest._id });
@@ -112,7 +120,14 @@ class SagaOrchestrator {
             {
                 sagaId,
                 leaveId,
-                employeeId: leaveRequest.employeeId,
+                employeeId:    leaveRequest.employeeId,
+                employeeName:  leaveRequest.employeeName,
+                employeeEmail: leaveRequest.employeeEmail,
+                leaveType:     leaveRequest.leaveType,
+                startDate:     leaveRequest.startDate,
+                endDate:       leaveRequest.endDate,
+                numberOfDays:  leaveRequest.numberOfDays,
+                reason:        leaveRequest.reason,
             }
         );
         this.logger.info('[SagaOrchestrator] Saga completed successfully', { sagaId, leaveId });

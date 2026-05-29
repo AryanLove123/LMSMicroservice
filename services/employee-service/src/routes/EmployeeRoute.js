@@ -1,7 +1,13 @@
 const express = require('express');
 const { authenticate, authorize, authorizeOwnerOrManager } = require('../../../../shared/middlewares/authMiddleware');
+const serviceAuthMiddleware = require('../../../../shared/middlewares/serviceAuthMiddleware');
+
 const createEmployeeRoutes = (employeeController) => {
     const router = express.Router();
+    router.get('/internal/:id', (req, res, next) => {
+        console.log('[Route] /internal/:id hit, id:', req.params.id);
+        next();
+    }, serviceAuthMiddleware, employeeController.getEmployeeById);
     router.use(authenticate);
 
     router.get('/profile', employeeController.getMe);

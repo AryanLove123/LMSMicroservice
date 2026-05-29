@@ -57,13 +57,23 @@ class LeaveService {
       throw AppError.badRequest(`Insufficient leave balance for ${leaveType}. Available: ${balance ? balance.remaining : 0} days and requested: ${requestedDays} days.`);
     }
 
+    const managerInfo = await this.empClient.internalGet(`/employees/internal/${employee.managerId}`)
+      .catch(err => {
+        this.logger.error('Failed to fetch manager profile', { managerId: employee.managerId, error: err.message, status:err.response.status, data: err.response.data, url: config.url });
+        throw AppError.serviceUnavailable('Failed to fetch manager profile. Please try again later.');
+      });
+
     const leaveRequest = await LeaveRequest.create({
       employeeId: employee.userId,
       managerId: employee.managerId,
+      employeeName:  employee.name,
+      employeeEmail: employee.email,
+      managerEmail:  managerInfo.data.email  || null,
+      managerName:   managerInfo.data.name   || null,
+      numberOfDays:  requestedDays,
       leaveType,
       startDate,
       endDate,
-      requestedDays,
       reason,
       status: LEAVE_STATUS.PENDING,
     });
@@ -71,14 +81,18 @@ class LeaveService {
       await this.rabbitMQ.publish(RABBIT_EXCHANGES.LEAVE_EVENTS,
         RABBIT_ROUTING_KEYS.LEAVE_REQUESTED,
         {
-          leaveRequestId: leaveRequest._id,
-          employeeId: employee.userId,
-          managerId: employee.managerId,
+          leaveRequestId:  leaveRequest._id,
+          employeeId:      employee.userId,
+          employeeName:    employee.name,
+          employeeEmail:   employee.email,
+          managerId:       employee.managerId,
+          managerEmail:    managerInfo.data.email  || null,
+          managerName:     managerInfo.data.name   || null,
           leaveType,
           startDate,
           endDate,
           reason,
-          requestedDays,
+          numberOfDays: requestedDays,
           status: LEAVE_STATUS.PENDING,
         },
       );
@@ -143,6 +157,47 @@ class LeaveService {
       throw AppError.badRequest('Invalid action. Must be either "approve" or "reject".');
     } 
   }
+
+  async cancelLeave(employeeId, leaveRequestId, cancelData) {
+    const leaveRequest = await LeaveRequest.findOne({
+      _id: leaveRequestId,
+      employeeId,
+      status: { $in: [LEAVE_STATUS.PENDING, LEAVE_STATUS.APPROVED] },
+    });
+    if (!leaveRequest) {
+      throw AppError.notFound('Leave request not found or cannot be canceled');
+    }
+
+    if (leaveRequest.employeeId !== employeeId) {
+      throw AppError.forbidden('You can only cancel your own leave requests');
+    }
+
+    if (leaveRequest.status === LEAVE_STATUS.APPROVED && leaveRequest.startDate <= new Date()) {
+      throw AppError.conflict('Cannot cancel a leave that has already started');
+    }
+
+    if ([LEAVE_STATUS.REJECTED, LEAVE_STATUS.CANCELLED].includes(leaveRequest.status)) {
+      throw AppError.conflict(`Leave is already ${leaveRequest.status}`);
+    }
+
+    // If approved, restore the balance via Saga compensation
+
+    if(leaveRequest.status === LEAVE_STATUS.APPROVED) {
+      await this.mq.publish(
+        RABBIT_EXCHANGES.SAGA_EVENTS,
+        RABBIT_ROUTING_KEYS.SAGA_RESTORE_BALANCE,
+        {
+          sagaId: leaveRequest.sagaId || 'cancel',
+          leaveId: leaveRequest._id.toString(),
+          userId: leaveRequest.employeeId,
+          leaveType: leaveRequest.leaveType,
+          days: leaveRequest.numberOfDays,
+        }
+      );
+    }
+
+  }
+
 
   calculateWorkingDays(start, end) {
     start.setHours(0, 0, 0, 0);

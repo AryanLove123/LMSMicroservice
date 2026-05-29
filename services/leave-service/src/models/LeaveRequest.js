@@ -12,6 +12,26 @@ const leaveRequestSchema = new mongoose.Schema({
         required: true,
         index: true
     },
+    employeeName: { 
+        type: String, 
+        default: null 
+    },
+    employeeEmail: { 
+        type: String, 
+        default: null 
+    },
+    managerEmail: { 
+        type: String, 
+        default: null 
+    },
+    managerName: { 
+        type: String, 
+        default: null 
+    },
+    numberOfDays: { 
+        type: Number, 
+        default: null 
+    },
     startDate: {
         type: Date,
         required: [true, 'Start date is required'],

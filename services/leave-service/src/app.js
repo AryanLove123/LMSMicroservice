@@ -10,7 +10,7 @@ const SagaReplyConsumer = require('./saga/SagaReplyConsumer');
 const createApp = async (logger, rabbitMQ = null) => {
     const app = express();
     app.use(express.json()); 
-    const sagaOrchestrator = new SagaOrchestrator(logger, rabbitMQ);
+    const sagaOrchestrator = new SagaOrchestrator(rabbitMQ,logger);
 
     const empClient = new ServiceHttpClient(config.employeeServiceUrl, 'employee-service', logger);   
     const leaveService = new LeaveService(logger, rabbitMQ, empClient, sagaOrchestrator);
