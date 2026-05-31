@@ -2,11 +2,6 @@ const AppError = require('../utils/AppError');
 const crypto = require('crypto');
 
 const serviceAuthMiddleware = (req, res, next) => {
-    console.log('[ServiceAuth] Hit internal route:', req.method, req.originalUrl);
-    console.log('[ServiceAuth] Headers received:', {
-        'x-service-token': req.headers['x-service-token'] ? '***present***' : 'MISSING',
-        'x-service-name': req.headers['x-service-name'] || 'MISSING',
-    });
     const serviceToken = req.headers['x-service-token'];
     const callerName = req.headers['x-service-name'] || 'unknown';
     const expectedToken = process.env.INTERNAL_SERVICE_SECRET;

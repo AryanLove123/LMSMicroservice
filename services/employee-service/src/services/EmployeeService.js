@@ -91,6 +91,16 @@ class EmployeeService {
     return employee.leaveBalances;
   }
 
+  async restoreLeave(employeeId, leaveType, days) {
+    const employee = await Employee.findByUserId(employeeId);
+    if (!employee) throw AppError.notFound('Employee not found for balance restore');
+
+    employee.restoreLeaveBalance(leaveType, days);
+    await employee.save();
+    this.logger.info(`[EmployeeService] Leave balance restored — employeeId: ${employeeId}, leaveType: ${leaveType}, days: ${days}`);
+    return employee.leaveBalances;
+  }
+
 }
 
 module.exports = EmployeeService;

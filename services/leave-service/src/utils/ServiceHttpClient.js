@@ -31,8 +31,6 @@ class ServiceHttpClient {
   }
 
   async _call(cfg, { userToken, isInternal } = {}) {
-    console.log('[HttpClient] Calling:', cfg.method, this.client.defaults.baseURL + cfg.url,
-      '| internal:', !!isInternal);
     try {
       const headers = this._buildHeaders(userToken, isInternal);
       const res = await this.cb.fire({ ...cfg, headers });
@@ -62,10 +60,7 @@ class ServiceHttpClient {
   _buildHeaders(userToken, isInternal) {
     if (isInternal) {
       const secret = process.env.INTERNAL_SERVICE_SECRET;
-      console.log('[HttpClient] Building internal headers, secret present:',secret);
-      console.log('[HttpClient] SERVICE_NAME:', process.env.SERVICE_NAME || 'NOT SET');
       if (!secret) {
-        // Catch misconfiguration at call time — not silently
         throw new Error('INTERNAL_SERVICE_SECRET is not set in environment');
       }
       return {

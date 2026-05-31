@@ -1,6 +1,6 @@
 const amqp = require('amqplib');
 const { RABBIT_EXCHANGES } = require('../constants/constant');
-const { injectTraceContext, extractTraceContext } = require('./tracer');
+const { injectTraceContext } = require('./tracer');
 class RabbitMQManager {
   constructor(logger) {
     this.logger     = logger;
@@ -8,6 +8,7 @@ class RabbitMQManager {
     this.channel    = null;
     this.uri        = null;
     this._reconnecting = false;
+    this._closing      = false;  // set to true during intentional shutdown
   }
 
   async connect(uri) {
@@ -44,7 +45,7 @@ class RabbitMQManager {
   }
 
   _scheduleReconnect() {
-    if (this._reconnecting) return;
+    if (this._reconnecting || this._closing) return;  // don't reconnect after intentional close
     this._reconnecting = true;
     setTimeout(async () => {
       this._reconnecting = false;
@@ -67,6 +68,24 @@ class RabbitMQManager {
       headers:      carrierHeaders,
     });
     this.logger.debug('[RabbitMQ] Published', { exchange, routingKey });
+  }
+
+  // Graceful shutdown: closes channel + connection and suppresses the reconnect timer.
+  async close() {
+    this._closing = true;
+    try {
+      if (this.channel) {
+        await this.channel.close();
+        this.channel = null;
+      }
+      if (this.connection) {
+        await this.connection.close();
+        this.connection = null;
+      }
+    } catch (err) {
+      // Log but don't throw — we're shutting down anyway
+      this.logger.error('[RabbitMQ] Error during close', { error: err.message });
+    }
   }
 
   async subscribe(queue, exchange, pattern, handler) {
@@ -93,11 +112,11 @@ class RabbitMQManager {
       if (!msg) return;
       try {
         const content = JSON.parse(msg.content.toString());
-        //Extract trace context from message headers and run handler within that context for proper trace correlation in Jaeger
-        const parentCtx = extractTraceContext(msg.properties.headers || {});
-        await runWithExtractedContext(parentCtx, async () => {
-          await handler(content);
-        });
+        // AmqplibInstrumentation automatically extracts the trace context from
+        // msg.properties.headers and sets it as the active span context before
+        // calling this callback. Do NOT override that context manually —
+        // doing so orphans the auto-created 'process' span in Jaeger.
+        await handler(content);
         this.channel.ack(msg);
       } catch (err) {
         this.logger.error('[RabbitMQ] Handler error — moving to DLQ', {

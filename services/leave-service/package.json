@@ -11,7 +11,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "amqplib": "^2.0.1",
+    "amqplib": "^0.10.9",
     "axios": "^1.16.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",

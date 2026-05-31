@@ -1,6 +1,6 @@
 const { NodeSDK } = require('@opentelemetry/sdk-node');
-const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-grpc');
-const { Resource } = require('@opentelemetry/resources');
+const {OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
+const { resourceFromAttributes } = require('@opentelemetry/resources');
 const otelApi = require('@opentelemetry/api');
 
 const { ExpressInstrumentation } = require('@opentelemetry/instrumentation-express');
@@ -8,17 +8,20 @@ const { HttpInstrumentation } = require('@opentelemetry/instrumentation-http');
 const { MongooseInstrumentation } = require('@opentelemetry/instrumentation-mongoose');
 const { AmqplibInstrumentation } = require('@opentelemetry/instrumentation-amqplib');
 
-let _sdkStarted = null;
+let sdk = null;
+let sdkStarted = null;
 
 const initTracer = (serviceName) => {
-    if (_sdkStarted) return;
+    if (sdkStarted) return;
     try {
         const jaegerHost = process.env.JAEGER_HOST || 'localhost';
         const jaegerPort = process.env.JAEGER_OTLP_PORT || '4318';
 
-        const sdk = new NodeSDK({
+        sdk = new NodeSDK({
             // Tag every span with the service name so Jaeger shows it in the service dropdown
-            resource: new Resource({ 'service.name': serviceName }),
+            resource: resourceFromAttributes({
+                'service.name': serviceName
+            }),
 
             // Ship spans to Jaeger over OTLP HTTP (Jaeger all-in-one listens on :4318)
             traceExporter: new OTLPTraceExporter({
@@ -41,18 +44,19 @@ const initTracer = (serviceName) => {
                         span.setAttribute('messaging.rabbitmq.exchange', exchange || '');
                         span.setAttribute('messaging.rabbitmq.routing_key', routingKey || '');
                     },
-                    consumeHook: (span, { queue }) => {
-                        span.setAttribute('messaging.rabbitmq.queue', queue || '');
+                    // consumeHook receives the raw amqplib ConsumeMessage as the second argument,
+                    // NOT an object with a queue property.  Use msg.fields for routing info.
+                    consumeHook: (span, msg) => {
+                        if (msg?.fields) {
+                            span.setAttribute('messaging.rabbitmq.routing_key', msg.fields.routingKey || '');
+                            span.setAttribute('messaging.rabbitmq.exchange',    msg.fields.exchange    || '');
+                        }
                     },
                 }),
             ],
         });
         sdk.start();
-        _sdkStarted = true;
-
-        // Graceful shutdown handling to flush spans before exit
-        process.on('SIGTERM', () => _shutdownTracer(serviceName));
-        process.on('SIGINT', () => _shutdownTracer(serviceName));
+        sdkStarted = true;
 
         console.log(`[Tracer] OpenTelemetry started for "${serviceName}" → Jaeger at http://${jaegerHost}:${jaegerPort}`);
     } catch (error) {
@@ -60,13 +64,18 @@ const initTracer = (serviceName) => {
     }
 }
 
-const _shutdownTracer = async (serviceName) => {
-    if (!_sdk) return;
+// Flush all pending spans and shut down the SDK.
+// Called explicitly by each service during graceful shutdown.
+const shutdownTracer = async () => {
+    if (!sdk) return;
     try {
-        await _sdk.shutdown();
-        console.log(`[Tracer] Shutdown complete for ${serviceName}`);
+        await sdk.shutdown();
+        console.log('[Tracer] Shutdown complete');
     } catch (err) {
         console.error('[Tracer] Shutdown error:', err.message);
+    } finally {
+        sdk = null;
+        sdkStarted = false;
     }
 };
 
@@ -84,7 +93,8 @@ const _shutdownTracer = async (serviceName) => {
 
 const withSpan = async (tracerName, spanName, attributes, fn) => {
     const { trace, context, SpanStatusCode } = otelApi;
-    const span = trace(tracerName).startSpan(spanName, { attributes });
+    const tracer = trace.getTracer(tracerName);
+    const span = tracer.startSpan(spanName, { attributes });
     // context.with() ensures that the span is active during the execution of fn, so any logs or child spans will be associated with it in Jaeger. It also handles proper propagation of context across async calls.
     return context.with(trace.setSpan(context.active(), span), async () => {
         try {
@@ -108,7 +118,7 @@ const getActiveTraceIds = () => {
     if (!span) return {};
     const spanContext = span.spanContext();
     //only attached Ids for sampled spans
-    if(spanContext.traceFlags === 0) return {};
+    if (spanContext.traceFlags === 0) return {};
     return {
         traceId: spanContext.traceId,
         spanId: spanContext.spanId,
@@ -129,10 +139,10 @@ const extractTraceContext = (carrierHeaders) => {
 
 //Run an async function with the previous extracted context
 const runWithExtractedContext = async (extractedContext, fn) => {
-    const { context } = otelApi;    
+    const { context } = otelApi;
     return context.with(extractedContext, async () => {
         return await fn();
     });
 }
 
-module.exports = { initTracer, withSpan, injectTraceContext, extractTraceContext, getActiveTraceIds, runWithExtractedContext };
+module.exports = { initTracer, shutdownTracer, withSpan, injectTraceContext, extractTraceContext, getActiveTraceIds, runWithExtractedContext };

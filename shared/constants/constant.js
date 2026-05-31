@@ -65,6 +65,7 @@ const RABBIT_QUEUES = {
   SAGA_DEDUCT_BALANCE: 'saga_deduct_balance',
   SAGA_DEDUCT_SUCCESS: 'saga_deduct_success',
   SAGA_DEDUCT_FAILURE: 'saga_deduct_failure',
+  SAGA_RESTORE_BALANCE: 'saga_restore_balance',
   NOTIFY_LEAVE_APPROVAL: 'notify_leave_approval',
   NOTIFY_LEAVE_REJECTION: 'notify_leave_rejection',
 }
@@ -78,6 +79,7 @@ const RABBIT_ROUTING_KEYS = {
   SAGA_DEDUCT_BALANCE: 'saga.deduct_balance',
   SAGA_DEDUCT_SUCCESS: 'saga.deduct_success',
   SAGA_DEDUCT_FAILURE: 'saga.deduct_failure',
+  SAGA_RESTORE_BALANCE: 'saga.restore_balance',
   NOTIFY_LEAVE_APPROVAL: 'notify.leave_approval',
   NOTIFY_LEAVE_REJECTION: 'notify.leave_rejection',
 }

@@ -11,7 +11,6 @@ class LeaveService {
   }
 
   requestLeave = async (user, leaveData) => {
-    console.log("Thissss isss user", user);
     const employeeResponse = await this.empClient.get('/employees/profile', user.rawToken)
       .catch(err => {
         this.logger.error('Failed to fetch employee profile', { userId: user.userId, error: err.message });

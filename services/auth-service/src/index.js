@@ -1,4 +1,6 @@
 const config = require('./config');
+const { initTracer, shutdownTracer } = require('../../../shared/utils/tracer');
+initTracer(config.serviceName);
 const mongoose = require('mongoose');
 const createApp = require('./app');
 const { createServiceLogger } = require('../../../shared/utils/logger');
@@ -6,26 +8,52 @@ const rabbitMQManager = require('../../../shared/utils/rabbitmq');
 const User = require('./models/User');
 const { ROLES } = require('../../../shared/constants/constant');
 const logger = createServiceLogger(config.serviceName);
+
+let server;
+let rabbitMQInstance;
+
+const shutdown = async (signal) => {
+    logger.info(`[Shutdown] ${signal} received — shutting down gracefully`);
+    try {
+        // 1. Stop accepting new HTTP connections (existing ones finish naturally)
+        if (server) await new Promise((resolve) => server.close(resolve));
+        // 2. Close RabbitMQ channel + connection (prevents reconnect timer firing)
+        if (rabbitMQInstance) await rabbitMQInstance.close();
+        // 3. Close MongoDB connection
+        await mongoose.connection.close();
+        // 4. Flush all pending OTel spans to Jaeger
+        await shutdownTracer();
+    } catch (err) {
+        logger.error('[Shutdown] Error during shutdown', { error: err.message });
+    } finally {
+        // 5. Flush + destroy the Logstash TCP socket last
+        logger.close();
+        process.exit(0);
+    }
+};
+
+process.on('SIGINT',  () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
 const startServer = async () => {
     try {
         await mongoose.connect(config.mongodbUri);
         logger.info('[MongoDB] Connected to auth_db');
 
-        const rabbitMQManagerInstance = new rabbitMQManager(logger);
-
-        await rabbitMQManagerInstance.connect(config.rabbitmqUri);
+        rabbitMQInstance = new rabbitMQManager(logger);
+        await rabbitMQInstance.connect(config.rabbitmqUri);
 
         await seedAdmin();
 
-        const app = createApp(logger, rabbitMQManagerInstance);
-        const server = app.listen(config.port, () => {
+        const app = createApp(logger, rabbitMQInstance);
+        server = app.listen(config.port, () => {
             logger.info(`[Server] ${config.serviceName} running on port ${config.port}`);
         });
     } catch (err) {
         logger.error('[Startup] Fatal error', { error: err.message, stack: err.stack });
         process.exit(1);
     }
-}
+};
 
 const seedAdmin = async () => {
     const existing = await User.findByEmail(config.admin.email);
