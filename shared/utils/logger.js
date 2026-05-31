@@ -2,18 +2,31 @@ const net = require('net');
 const { createLogger, format, transports } = require('winston');
 const Transport = require('winston-transport');
 const { combine, timestamp, errors, json, colorize, simple } = format;
+
+const { getActiveTraceIds } = require('./tracer');
+
+//Stamps traceId + spanId from the currently active OTel span onto every log line
+const traceContextFormat = format((info) => {
+    const { traceId, spanId } = getActiveTraceIds();
+    if (traceId) {
+        info.traceId = traceId;
+        info.spanId = spanId;
+    }
+    return info;
+});
+
 class LogstashTcpTransport extends Transport {
     constructor(opts = {}) {
         super(opts);
-        this.host           = opts.host          || 'localhost';
-        this.port           = opts.port          || 5000;
-        this.retryInterval  = opts.retryInterval || 3000;
-        this.maxRetries     = opts.maxRetries    || 20;
-        this._retries       = 0;
-        this._connected     = false;
-        this._reconnecting  = false;
-        this._queue         = [];   // buffered while socket is down
-        this._socket        = null;
+        this.host = opts.host || 'localhost';
+        this.port = opts.port || 5000;
+        this.retryInterval = opts.retryInterval || 3000;
+        this.maxRetries = opts.maxRetries || 20;
+        this._retries = 0;
+        this._connected = false;
+        this._reconnecting = false;
+        this._queue = [];   // buffered while socket is down
+        this._socket = null;
         this._connect();
     }
 
@@ -23,9 +36,9 @@ class LogstashTcpTransport extends Transport {
         this._socket = sock;
 
         sock.on('connect', () => {
-            this._connected    = true;
+            this._connected = true;
             this._reconnecting = false;
-            this._retries      = 0;
+            this._retries = 0;
             while (this._queue.length) {
                 this._writeRaw(this._queue.shift());
             }
@@ -107,9 +120,11 @@ const createServiceLogger = (serviceName) => {
 
     const logger = createLogger({
         level: process.env.LOG_LEVEL || 'info',
-        format: combine(timestamp(), errors({ stack: true }), json()),
+        format: combine(traceContextFormat(), timestamp(), errors({ stack: true }), json()),
         defaultMeta: { service: serviceName },
         transports: logTransports,
+        exceptionHandlers: [new transports.Console()],
+        rejectionHandlers: [new transports.Console()],
     });
 
     return logger;
