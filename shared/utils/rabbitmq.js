@@ -1,14 +1,14 @@
 const amqp = require('amqplib');
 const { RABBIT_EXCHANGES } = require('../constants/constant');
-const { injectTraceContext } = require('./tracer');
+const { injectTraceContext, runWithExtractedContext , extractTraceContext} = require('./tracer');
 class RabbitMQManager {
   constructor(logger) {
-    this.logger     = logger;
+    this.logger = logger;
     this.connection = null;
-    this.channel    = null;
-    this.uri        = null;
+    this.channel = null;
+    this.uri = null;
     this._reconnecting = false;
-    this._closing      = false;  // set to true during intentional shutdown
+    this._closing = false;  // set to true during intentional shutdown
   }
 
   async connect(uri) {
@@ -19,7 +19,7 @@ class RabbitMQManager {
   async _connect() {
     try {
       this.connection = await amqp.connect(this.uri);
-      this.channel    = await this.connection.createChannel();
+      this.channel = await this.connection.createChannel();
       await this._setupTopology();
 
       this.connection.on('error', (err) => {
@@ -62,10 +62,10 @@ class RabbitMQManager {
     injectTraceContext(carrierHeaders);
 
     this.channel.publish(exchange, routingKey, buffer, {
-      persistent:   true,
-      contentType:  'application/json',
-      timestamp:    Date.now(),
-      headers:      carrierHeaders,
+      persistent: true,
+      contentType: 'application/json',
+      timestamp: Date.now(),
+      headers: carrierHeaders,
     });
     this.logger.debug('[RabbitMQ] Published', { exchange, routingKey });
   }
@@ -92,17 +92,17 @@ class RabbitMQManager {
     if (!this.channel) throw new Error('RabbitMQ channel not ready');
 
     // Dead-letter exchange setup
-    const dlxName  = `${queue}.dlx`;
-    const dlqName  = `${queue}.dead`;
+    const dlxName = `${queue}.dlx`;
+    const dlqName = `${queue}.dead`;
     await this.channel.assertExchange(dlxName, 'fanout', { durable: true });
     await this.channel.assertQueue(dlqName, { durable: true });
     await this.channel.bindQueue(dlqName, dlxName, '#');
 
     await this.channel.assertQueue(queue, {
-      durable:   true,
+      durable: true,
       arguments: {
         'x-dead-letter-exchange': dlxName,
-        'x-message-ttl':          86400000, // 24h
+        'x-message-ttl': 86400000, // 24h
       },
     });
     await this.channel.bindQueue(queue, exchange, pattern);
@@ -112,11 +112,10 @@ class RabbitMQManager {
       if (!msg) return;
       try {
         const content = JSON.parse(msg.content.toString());
-        // AmqplibInstrumentation automatically extracts the trace context from
-        // msg.properties.headers and sets it as the active span context before
-        // calling this callback. Do NOT override that context manually —
-        // doing so orphans the auto-created 'process' span in Jaeger.
-        await handler(content);
+        const parentCtx = extractTraceContext(msg.properties.headers);
+        await runWithExtractedContext(parentCtx, async () => {
+          await handler(content);
+        });
         this.channel.ack(msg);
       } catch (err) {
         this.logger.error('[RabbitMQ] Handler error — moving to DLQ', {

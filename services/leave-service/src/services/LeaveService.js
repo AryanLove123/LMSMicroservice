@@ -157,17 +157,19 @@ class LeaveService {
     } 
   }
 
-  async cancelLeave(employeeId, leaveRequestId, cancelData) {
+  async cancelLeave(leaveRequestId, user, cancelData) {
+    console.log('Canceling leave request logss', { leaveRequestId, user: user, reason: cancelData });
     const leaveRequest = await LeaveRequest.findOne({
       _id: leaveRequestId,
-      employeeId,
+      employeeId: user.userId,
       status: { $in: [LEAVE_STATUS.PENDING, LEAVE_STATUS.APPROVED] },
     });
+    console.log('Leave request found for cancellation', { leaveRequest });
     if (!leaveRequest) {
       throw AppError.notFound('Leave request not found or cannot be canceled');
     }
 
-    if (leaveRequest.employeeId !== employeeId) {
+    if (leaveRequest.employeeId !== user.userId) {
       throw AppError.forbidden('You can only cancel your own leave requests');
     }
 
@@ -180,17 +182,18 @@ class LeaveService {
     }
 
     // If approved, restore the balance via Saga compensation
-
+    console.log('Restoring leave balance via Saga compensation', { leaveRequest });
     if(leaveRequest.status === LEAVE_STATUS.APPROVED) {
-      await this.mq.publish(
+      await this.rabbitMQ.publish(
         RABBIT_EXCHANGES.SAGA_EVENTS,
         RABBIT_ROUTING_KEYS.SAGA_RESTORE_BALANCE,
         {
           sagaId: leaveRequest.sagaId || 'cancel',
           leaveId: leaveRequest._id.toString(),
           userId: leaveRequest.employeeId,
+          numberOfDays: leaveRequest.numberOfDays,
           leaveType: leaveRequest.leaveType,
-          days: leaveRequest.numberOfDays,
+          reason: cancelData.reason,
         }
       );
     }

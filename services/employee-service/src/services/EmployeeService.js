@@ -91,13 +91,13 @@ class EmployeeService {
     return employee.leaveBalances;
   }
 
-  async restoreLeave(employeeId, leaveType, days) {
-    const employee = await Employee.findByUserId(employeeId);
+  async restoreLeave(userId, leaveType, days) {
+    const employee = await Employee.findByUserId(userId);
     if (!employee) throw AppError.notFound('Employee not found for balance restore');
 
     employee.restoreLeaveBalance(leaveType, days);
     await employee.save();
-    this.logger.info(`[EmployeeService] Leave balance restored — employeeId: ${employeeId}, leaveType: ${leaveType}, days: ${days}`);
+    this.logger.info(`[EmployeeService] Leave balance restored — userId: ${userId}, leaveType: ${leaveType}, days: ${days}`);
     return employee.leaveBalances;
   }
 

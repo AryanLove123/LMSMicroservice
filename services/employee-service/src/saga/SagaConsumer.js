@@ -19,7 +19,7 @@ class SagaConsumer {
             RABBIT_QUEUES.SAGA_RESTORE_BALANCE,
             RABBIT_EXCHANGES.SAGA_EVENTS,
             RABBIT_ROUTING_KEYS.SAGA_RESTORE_BALANCE,
-            (msg) => this.handleRestoreBalance(msg.sagaId, msg.leaveId, msg.employeeId, msg.numberOfDays, msg.leaveType)
+            (msg) => this.handleRestoreBalance(msg.sagaId, msg.leaveId, msg.userId, msg.numberOfDays, msg.leaveType, msg.reason)
         );
         this.logger.info('[SagaConsumer] Started listening to saga events');
     }
@@ -50,13 +50,13 @@ class SagaConsumer {
         });
     }
 
-    async handleRestoreBalance(sagaId, leaveId, employeeId, numberOfDays, leaveType) {
+    async handleRestoreBalance(sagaId, leaveId, userId, numberOfDays, leaveType, reason) {
         return withSpan('employee-service', 'saga.restore.balance', {
-            'saga.id': sagaId, 'leave.id': leaveId, 'employee.id': employeeId, 'leave.type': leaveType, 'leave.days': numberOfDays
+            'saga.id': sagaId, 'leave.id': leaveId, 'user.id': userId, 'leave.type': leaveType, 'leave.days': numberOfDays
         }, async (span) => {
-            this.logger.info('[SagaConsumer] Received balance restore command', { sagaId, leaveId, employeeId, numberOfDays, leaveType });      
+            this.logger.info('[SagaConsumer] Received balance restore command', { sagaId, leaveId, userId, numberOfDays, leaveType, reason });      
             try {
-                await this.empService.restoreLeave(employeeId, leaveType, numberOfDays);
+                await this.empService.restoreLeave(userId, leaveType, numberOfDays);
                 this.logger.info('[SagaConsumer] Balance restore successful', { sagaId, leaveId });
             }
             catch (error) {
