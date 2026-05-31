@@ -1,6 +1,6 @@
 const amqp = require('amqplib');
 const { RABBIT_EXCHANGES } = require('../constants/constant');
-
+const { injectTraceContext, extractTraceContext } = require('./tracer');
 class RabbitMQManager {
   constructor(logger) {
     this.logger     = logger;
@@ -55,10 +55,16 @@ class RabbitMQManager {
   async publish(exchange, routingKey, payload) {
     if (!this.channel) throw new Error('RabbitMQ channel not ready');
     const buffer = Buffer.from(JSON.stringify({ ...payload, routingKey }));
+
+    //build carrier headers and inject trace context if available
+    const carrierHeaders = {};
+    injectTraceContext(carrierHeaders);
+
     this.channel.publish(exchange, routingKey, buffer, {
       persistent:   true,
       contentType:  'application/json',
       timestamp:    Date.now(),
+      headers:      carrierHeaders,
     });
     this.logger.debug('[RabbitMQ] Published', { exchange, routingKey });
   }
@@ -87,7 +93,11 @@ class RabbitMQManager {
       if (!msg) return;
       try {
         const content = JSON.parse(msg.content.toString());
-        await handler(content);
+        //Extract trace context from message headers and run handler within that context for proper trace correlation in Jaeger
+        const parentCtx = extractTraceContext(msg.properties.headers || {});
+        await runWithExtractedContext(parentCtx, async () => {
+          await handler(content);
+        });
         this.channel.ack(msg);
       } catch (err) {
         this.logger.error('[RabbitMQ] Handler error — moving to DLQ', {
