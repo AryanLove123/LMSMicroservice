@@ -58,13 +58,16 @@ class AuthController {
     //Internal Route for nginx
     verifyToken = async (req, res, next) => {
         try {
-            const { token } = req.body;
-            if (!token) return ApiResponse.badRequest(res, 'Token is required');  
-            const result = await this.authService.verifyToken(token);
-            return ApiResponse.ok(res, 'Token verification successful', result);
-        } catch (error) {
-            next(error);
-        }
+            const token = req.headers['authorization']?.split(' ')[1] || req.body?.token;
+            if (!token) return res.status(401).json({ success: false, message: 'Token required' });
+            const decoded = await this.authService.verifyToken(token);
+            // Forward user info as headers for downstream services
+            res.set('X-User-Id', decoded.userId);
+            res.set('X-User-Role', decoded.role);
+            res.set('X-User-Email', decoded.email);
+            res.set('X-Employee-Id', decoded.employeeId || '');
+            return ApiResponse.ok(res, 'Token valid', decoded);
+        } catch (err) { return next(err); }
     }
 }
 

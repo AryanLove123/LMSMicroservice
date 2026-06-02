@@ -1,0 +1,26 @@
+# Git
+.git
+.gitignore
+
+# Node modules — Docker installs fresh inside the image
+node_modules
+services/*/node_modules
+
+# Local .env files — secrets must be injected via docker-compose, not baked in
+.env
+services/*/.env
+
+# Logs & build artefacts
+*.log
+npm-debug.log*
+
+# OS artefacts
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+
+# Infrastructure source (not needed inside Node images)
+infrastructure/

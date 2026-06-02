@@ -1,3 +1,4 @@
 .env
 node_modules
-logstash.conf
+infrastructure
+docker-compose.yml

@@ -4,14 +4,16 @@ const router = express.Router();
 
 const createAuthRoutes = (authController) => {
     // Public routes
+    router.get('/verify', authController.verifyToken);
+    router.post('/verify', authController.verifyToken);
     router.post('/login', authController.login);
     router.post('/refresh', authController.refresh);
-    router.post('/logout', authController.logout);
-
+    
     // Protected routes
     router.post('/register', authenticate, authorize(['admin']), authController.createUser);
+    router.post('/logout', authenticate,authController.logout);
     router.post('/logout-all', authenticate, authController.logoutAll);
-    router.post('/verify', authenticate, authController.verifyToken);
+    
     return router;
 };
 
