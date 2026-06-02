@@ -158,6 +158,7 @@ class LeaveService {
   }
 
   async cancelLeave(leaveRequestId, user, cancelData) {
+    let previousStatus = LEAVE_STATUS.PENDING;
     console.log('Canceling leave request logss', { leaveRequestId, user: user, reason: cancelData });
     const leaveRequest = await LeaveRequest.findOne({
       _id: leaveRequestId,
@@ -184,6 +185,7 @@ class LeaveService {
     // If approved, restore the balance via Saga compensation
     console.log('Restoring leave balance via Saga compensation', { leaveRequest });
     if(leaveRequest.status === LEAVE_STATUS.APPROVED) {
+      previousStatus = LEAVE_STATUS.APPROVED;
       await this.rabbitMQ.publish(
         RABBIT_EXCHANGES.SAGA_EVENTS,
         RABBIT_ROUTING_KEYS.SAGA_RESTORE_BALANCE,
@@ -197,6 +199,29 @@ class LeaveService {
         }
       );
     }
+    leaveRequest.status = LEAVE_STATUS.CANCELLED;
+    leaveRequest.cancelledAt = new Date();
+    leaveRequest.cancelledReason = cancelData.reason;
+    await leaveRequest.save();
+
+    await this.rabbitMQ.publish(
+      RABBIT_EXCHANGES.NOTIFICATION_EVENTS,
+      RABBIT_ROUTING_KEYS.NOTIFY_LEAVE_CANCELLATION,
+      {
+        leaveId: leaveRequest._id.toString(),
+        employeeId: leaveRequest.employeeId,
+        reason: cancelData.reason,
+        employeeName: leaveRequest.employeeName,
+        employeeEmail: leaveRequest.employeeEmail,
+        startDate: leaveRequest.startDate,
+        endDate: leaveRequest.endDate,
+        leaveType: leaveRequest.leaveType,
+        numberOfDays: leaveRequest.numberOfDays,
+        startDate: leaveRequest.startDate,
+        endDate: leaveRequest.endDate,
+        previousStatus,
+      }
+    );
 
   }
 

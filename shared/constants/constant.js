@@ -68,6 +68,7 @@ const RABBIT_QUEUES = {
   SAGA_RESTORE_BALANCE: 'saga_restore_balance',
   NOTIFY_LEAVE_APPROVAL: 'notify_leave_approval',
   NOTIFY_LEAVE_REJECTION: 'notify_leave_rejection',
+  NOTIFY_LEAVE_CANCELLATION: 'notify_leave_cancellation',
 }
 
 const RABBIT_ROUTING_KEYS = {
@@ -82,6 +83,7 @@ const RABBIT_ROUTING_KEYS = {
   SAGA_RESTORE_BALANCE: 'saga.restore_balance',
   NOTIFY_LEAVE_APPROVAL: 'notify.leave_approval',
   NOTIFY_LEAVE_REJECTION: 'notify.leave_rejection',
+  NOTIFY_LEAVE_CANCELLATION: 'notify.leave_cancellation',
 }
 
 
