@@ -11,7 +11,7 @@ class LeaveService {
   }
 
   requestLeave = async (user, leaveData) => {
-    const employeeResponse = await this.empClient.get('/employees/profile', user.rawToken)
+    const employeeResponse = await this.empClient.get('/api/employees/profile', user.rawToken)
       .catch(err => {
         this.logger.error('Failed to fetch employee profile', { userId: user.userId, error: err.message });
         throw AppError.serviceUnavailable('Failed to fetch employee profile. Please try again later.');
@@ -42,7 +42,7 @@ class LeaveService {
       );
     }
 
-    const leaveBalanceResult = await this.empClient.get(`/employees/${user.userId}/leave-balance`, user.rawToken)
+    const leaveBalanceResult = await this.empClient.get(`/api/employees/${user.userId}/leave-balance`, user.rawToken)
       .catch(err => {
         this.logger.error('Failed to fetch leave balance', { userId: user.userId, error: err.message });
         throw AppError.serviceUnavailable('Failed to fetch leave balance. Please try again later.');
@@ -56,7 +56,7 @@ class LeaveService {
       throw AppError.badRequest(`Insufficient leave balance for ${leaveType}. Available: ${balance ? balance.remaining : 0} days and requested: ${requestedDays} days.`);
     }
 
-    const managerInfo = await this.empClient.internalGet(`/employees/internal/${employee.managerId}`)
+    const managerInfo = await this.empClient.internalGet(`/api/employees/internal/${employee.managerId}`)
       .catch(err => {
         this.logger.error('Failed to fetch manager profile', { managerId: employee.managerId, error: err.message, status:err.response.status, data: err.response.data, url: config.url });
         throw AppError.serviceUnavailable('Failed to fetch manager profile. Please try again later.');
