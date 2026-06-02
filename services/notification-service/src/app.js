@@ -23,6 +23,14 @@ const createApp = async (logger, rabbitMQ = null) => {
     const notifyController = new NotificationController(notifyService);
     const notifyRoutes     = notificationRoutes(notifyController);
 
+    app.get('/health', (req, res) => {
+        res.json({
+            status: 'UP',
+            service: config.serviceName,
+            timestamp: new Date().toISOString()
+        });
+    });
+
     app.use('/api/notifications', notifyRoutes);
 
     if (rabbitMQ) {

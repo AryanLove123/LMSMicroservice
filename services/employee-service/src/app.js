@@ -4,6 +4,7 @@ const EmployeeService = require('./services/EmployeeService');
 const EmployeeController = require('./controllers/EmployeeController');
 const { UserCreatedConsumer } = require('./services/UserCreatedConsumer');
 const SagaConsumer = require('./saga/SagaConsumer');
+const config = require('./config');
 
 const createApp = async (logger, rabbitMQ = null) => {
     const app = express();
@@ -17,6 +18,15 @@ const createApp = async (logger, rabbitMQ = null) => {
 
     const sagaConsumer = new SagaConsumer(rabbitMQ, logger, empService);
     await sagaConsumer.startListening();
+
+    app.get('/health', (req, res) => {
+        res.json({
+            status: 'UP',
+            service: config.serviceName,
+            timestamp: new Date().toISOString()
+        });
+    });
+
     app.use('/api/employees', empRoutes);
 
     app.use((err, req, res, next) => {

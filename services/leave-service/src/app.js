@@ -12,13 +12,21 @@ const createApp = async (logger, rabbitMQ = null) => {
     app.use(express.json());
     const sagaOrchestrator = new SagaOrchestrator(rabbitMQ, logger);
 
-    const empClient = new ServiceHttpClient(config.employeeServiceUrl, 'employee-service', logger);
+    const empClient = new ServiceHttpClient(null, 'employee-service', logger);
     const leaveService = new LeaveService(logger, rabbitMQ, empClient, sagaOrchestrator);
     const leaveController = new LeaveController(leaveService);
     const leaveRoutes = createLeaveRoutes(leaveController);
 
     const sagaReplyConsumer = new SagaReplyConsumer(rabbitMQ, logger, sagaOrchestrator);
     await sagaReplyConsumer.startListening();
+
+    app.get('/health', (req, res) => {
+        res.json({
+            status: 'UP',
+            service: config.serviceName,
+            timestamp: new Date().toISOString()
+        });
+    });
 
     app.use('/api/leaves', leaveRoutes);
     app.use((err, req, res, next) => {

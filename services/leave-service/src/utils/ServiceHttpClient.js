@@ -1,33 +1,58 @@
 const axios = require('axios');
 const AppError = require('../../../../shared/utils/AppError');
 const CircuitBreaker = require('../../../../shared/utils/CircuitBreaker');
-
+const ConsulClient = require('../../../../shared/utils/ConsulClient');
 class ServiceHttpClient {
   constructor(baseURL, serviceName, logger) {
-    this.client = axios.create({ baseURL, timeout: 5000 });
+    // this.client = axios.create({ baseURL, timeout: 5000 });
     this.logger = logger;
     this.serviceName = serviceName;
-    this.cb = new CircuitBreaker((config) => this.client.request(config), {
+    this.staticBaseURL = baseURL || null;
+    this.consul = new ConsulClient(logger);
+
+    this.cb = new CircuitBreaker((config) => axios.request(config), {
       threshold: 5,
       timeout: 30_000,
       logger,
     });
   }
 
+  async _resolveBaseURL() {
+    // If running locally with hardcoded URL, use it directly
+    if (this.staticBaseURL) return this.staticBaseURL;
+
+    // Otherwise discover via Consul
+    try {
+      return await this.consul.discover(this.serviceName);
+    } catch (err) {
+      this.logger.warn(
+        `[ServiceHttpClient] Consul discovery failed for ${this.serviceName}, ` +
+        `falling back to Docker DNS`,
+        { error: err.message }
+      );
+      // Fallback to Docker DNS if Consul unavailable
+      return `http://${this.serviceName}`;
+    }
+  }
+
   async get(path, token) {
-    return this._call({ method: 'GET', url: path }, { userToken: token });
+    const baseURL = await this._resolveBaseURL();
+    return this._call({ method: 'GET', url: `${baseURL}${path}` }, { userToken: token });
   }
 
   async post(path, data, token) {
-    return this._call({ method: 'POST', url: path, data }, { userToken: token });
+    const baseURL = await this._resolveBaseURL();
+    return this._call({ method: 'POST', url: `${baseURL}${path}`, data }, { userToken: token });
   }
 
   async internalGet(path) {
-    return this._call({ method: 'GET', url: path }, { isInternal: true });
+    const baseURL = await this._resolveBaseURL();
+    return this._call({ method: 'GET', url: `${baseURL}${path}` }, { isInternal: true });
   }
 
   async internalPost(path, data) {
-    return this._call({ method: 'POST', url: path, data }, { isInternal: true });
+    const baseURL = await this._resolveBaseURL();
+    return this._call({ method: 'POST', url: `${baseURL}${path}`, data }, { isInternal: true });
   }
 
   async _call(cfg, { userToken, isInternal } = {}) {

@@ -2,6 +2,7 @@ const express = require('express');
 const createAuthRoutes = require('./routes/AuthRoute');
 const AuthService = require('./services/AuthService');
 const AuthController = require('./controllers/AuthController');
+const config = require('./config');
 
 const createApp = (logger, rabbitMQ = null) => {
     const app = express();
@@ -10,6 +11,14 @@ const createApp = (logger, rabbitMQ = null) => {
     const authService = new AuthService(logger, rabbitMQ);
     const authController = new AuthController(authService);
     const authRoutes = createAuthRoutes(authController);
+
+    app.get('/health', (req, res) => {
+        res.json({
+            status: 'UP',
+            service: config.serviceName,
+            timestamp: new Date().toISOString()
+        });
+    });
 
     app.use('/api/auth', authRoutes);
 
