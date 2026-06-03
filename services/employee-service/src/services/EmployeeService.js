@@ -15,9 +15,20 @@ class EmployeeService {
     return employee;
   }
 
-  async getEmployeeById(userId) {
-    const employee = await Employee.findByUserId(userId);
+  async getEmployeeById(targetUserId, requestingUser) {
+    const employee = await Employee.findByUserId(targetUserId);
     if (!employee) throw AppError.notFound('Employee not found');
+
+    // Internal service call
+    if (!requestingUser) {
+      return employee;
+    }
+
+    if (requestingUser.role === 'manager') {
+      if (employee.managerId !== requestingUser.userId) {
+        throw AppError.forbidden('You can only access employees reporting to you');
+      }
+    }
     return employee;
   }
 
@@ -35,10 +46,23 @@ class EmployeeService {
     return Employee.findTeamByManagerId(managerId);
   }
 
-  async getLeaveBalance(userId) {
+  async getLeaveBalance(userId, type = 'all') {
     const employee = await Employee.findByUserId(userId);
     if (!employee) throw AppError.notFound('Employee not found');
-    return employee.leaveBalances;
+    const leaveBalances = employee.leaveBalances;
+    if (type.toLowerCase() === 'all') {
+      return leaveBalances;
+    }
+    const balance = leaveBalances.find(
+      leave => leave.type.toLowerCase() === type.toLowerCase()
+    );
+
+    if (!balance) {
+      throw AppError.badRequest(
+        `Invalid leave type '${type}'. Allowed values: casual, sick, privilege`
+      );
+    }
+    return balance;
   }
 
   async getManagers() {

@@ -11,7 +11,7 @@ class EmployeeController {
     console.log('[Controller] req.user:', req.user);       // will be undefined on internal calls
     console.log('[Controller] req.params.id:', req.params.id);
     try {
-      const employee = await this.employeeService.getEmployeeById(req.params.id);
+      const employee = await this.employeeService.getEmployeeById(req.params.id, req.user);
       return ApiResponse.ok(res, 'Employee retrieved', employee);
     } catch (error) { next(error); }
   }
@@ -40,7 +40,8 @@ class EmployeeController {
 
   getLeaveBalance = async (req, res, next) => {
     try {
-      const balances = await this.employeeService.getLeaveBalance(req.user.userId);
+      const { type = 'all' } = req.query;
+      const balances = await this.employeeService.getLeaveBalance(req.user.userId,type);
       return ApiResponse.ok(res, 'Leave balances retrieved', balances);
     } catch (error) { next(error); }
   }

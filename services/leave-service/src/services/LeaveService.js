@@ -42,12 +42,8 @@ class LeaveService {
       );
     }
 
-    const leaveBalanceResult = await this.empClient.get(`/api/employees/${user.userId}/leave-balance`, user.rawToken)
-      .catch(err => {
-        this.logger.error('Failed to fetch leave balance', { userId: user.userId, error: err.message });
-        throw AppError.serviceUnavailable('Failed to fetch leave balance. Please try again later.');
-      });
-    const leaveBalances = leaveBalanceResult.data;
+    const leaveBalances = employee.leaveBalances;
+    this.logger.info('Fetched leave balances for employee', { userId: user.userId, leaveBalances });
     const balance = leaveBalances.find(lb => lb.type === leaveType);
 
     const requestedDays = this.calculateWorkingDays(start, end);
@@ -58,7 +54,7 @@ class LeaveService {
 
     const managerInfo = await this.empClient.internalGet(`/api/employees/internal/${employee.managerId}`)
       .catch(err => {
-        this.logger.error('Failed to fetch manager profile', { managerId: employee.managerId, error: err.message, status:err.response.status, data: err.response.data, url: config.url });
+        this.logger.error('Failed to fetch manager profile', { managerId: employee.managerId, message: err.message, code: err.code, status:err.response?.status, data: err.response?.data });
         throw AppError.serviceUnavailable('Failed to fetch manager profile. Please try again later.');
       });
 

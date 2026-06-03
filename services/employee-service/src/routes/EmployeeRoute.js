@@ -17,7 +17,7 @@ const createEmployeeRoutes = (employeeController) => {
 
     router.get('/', authorize(['admin']), employeeController.getAllEmployees);
 
-    router.get('/:employeeId/leave-balance', employeeController.getLeaveBalance);
+    // router.get('/:employeeId/leave-balance', employeeController.getLeaveBalance);
 
     router.get('/:id', authorizeOwnerOrManager, employeeController.getEmployeeById);
     router.put('/:id', authorize(['admin']), employeeController.updateEmployee);
