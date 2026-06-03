@@ -1,4 +1,4 @@
-const {LeaveValidator} = require('../validators/LeaveValidators');
+const { LeaveValidator } = require('../validators/LeaveValidators');
 const ApiResponse = require('../../../../shared/utils/ApiResponse');
 
 class LeaveController {
@@ -31,14 +31,29 @@ class LeaveController {
     } catch (error) { next(error); }
   }
 
+  getMyLeaves = async (req, res, next) => {
+    try {
+      const { page = 1, limit = 10, status, leaveType, startDate, endDate } = req.query;
+      const leaves = await this.leaveService.getMyLeaves(req.user.userId, {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        status,
+        leaveType,
+        startDate,
+        endDate,
+      });
+      return ApiResponse.ok(res, 'Leave history retrieved successfully', leaves.requests, leaves.pagination);
+    } catch (error) { next(error); }
+  }
+
   getTeamLeaves = async (req, res, next) => {
     try {
-      const { page = 1, limit = 10, status, leaveType, employeeId, startDate, endDate } = req.query;
+      const { page = 1, limit = 10, status, leaveType, employeeEmail, startDate, endDate } = req.query;
       const managerId = req.query.managerId || req.user.userId;
       const leaves = await this.leaveService.getTeamLeaves(managerId, {
-        page: parseInt(page), limit: parseInt(limit), status, leaveType, employeeId, startDate, endDate,
+        page: parseInt(page), limit: parseInt(limit), status, leaveType, employeeEmail, startDate, endDate,
       });
-      return ApiResponse.paginated(res, 'Team leave requests retrieved successfully', leaves.requests, leaves.pagination);
+      return ApiResponse.ok(res, 'Team leave requests retrieved successfully', leaves.requests, leaves.pagination);
     } catch (error) { next(error); }
   }
 }

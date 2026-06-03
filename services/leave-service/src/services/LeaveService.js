@@ -54,18 +54,18 @@ class LeaveService {
 
     const managerInfo = await this.empClient.internalGet(`/api/employees/internal/${employee.managerId}`)
       .catch(err => {
-        this.logger.error('Failed to fetch manager profile', { managerId: employee.managerId, message: err.message, code: err.code, status:err.response?.status, data: err.response?.data });
+        this.logger.error('Failed to fetch manager profile', { managerId: employee.managerId, message: err.message, code: err.code, status: err.response?.status, data: err.response?.data });
         throw AppError.serviceUnavailable('Failed to fetch manager profile. Please try again later.');
       });
 
     const leaveRequest = await LeaveRequest.create({
       employeeId: employee.userId,
       managerId: employee.managerId,
-      employeeName:  employee.name,
+      employeeName: employee.name,
       employeeEmail: employee.email,
-      managerEmail:  managerInfo.data.email  || null,
-      managerName:   managerInfo.data.name   || null,
-      numberOfDays:  requestedDays,
+      managerEmail: managerInfo.data.email || null,
+      managerName: managerInfo.data.name || null,
+      numberOfDays: requestedDays,
       leaveType,
       startDate,
       endDate,
@@ -76,13 +76,13 @@ class LeaveService {
       await this.rabbitMQ.publish(RABBIT_EXCHANGES.LEAVE_EVENTS,
         RABBIT_ROUTING_KEYS.LEAVE_REQUESTED,
         {
-          leaveRequestId:  leaveRequest._id,
-          employeeId:      employee.userId,
-          employeeName:    employee.name,
-          employeeEmail:   employee.email,
-          managerId:       employee.managerId,
-          managerEmail:    managerInfo.data.email  || null,
-          managerName:     managerInfo.data.name   || null,
+          leaveRequestId: leaveRequest._id,
+          employeeId: employee.userId,
+          employeeName: employee.name,
+          employeeEmail: employee.email,
+          managerId: employee.managerId,
+          managerEmail: managerInfo.data.email || null,
+          managerName: managerInfo.data.name || null,
           leaveType,
           startDate,
           endDate,
@@ -108,9 +108,9 @@ class LeaveService {
       throw AppError.forbidden('You are not authorized to review this leave request');
     }
 
-    const { action , comments } = reviewData;
+    const { action, comments } = reviewData;
 
-    if(action === 'approve') {
+    if (action === 'approve') {
       today.setHours(0, 0, 0, 0);
       if (leaveRequest.startDate < today) {
         const effectiveStart = new Date(today);
@@ -146,11 +146,11 @@ class LeaveService {
 
       return this.sagaOrchestrator.startApprovalSaga(leaveRequest, comments);
 
-    } else if(action === 'reject') {
+    } else if (action === 'reject') {
       return this.sagaOrchestrator.startRejectionSaga(leaveRequest, comments);
     } else {
       throw AppError.badRequest('Invalid action. Must be either "approve" or "reject".');
-    } 
+    }
   }
 
   async cancelLeave(leaveRequestId, user, cancelData) {
@@ -180,7 +180,7 @@ class LeaveService {
 
     // If approved, restore the balance via Saga compensation
     console.log('Restoring leave balance via Saga compensation', { leaveRequest });
-    if(leaveRequest.status === LEAVE_STATUS.APPROVED) {
+    if (leaveRequest.status === LEAVE_STATUS.APPROVED) {
       previousStatus = LEAVE_STATUS.APPROVED;
       await this.rabbitMQ.publish(
         RABBIT_EXCHANGES.SAGA_EVENTS,
@@ -219,6 +219,109 @@ class LeaveService {
       }
     );
 
+  }
+
+  getMyLeaves = async (employeeId, filters) => {
+    const {page = 1, limit = 10, status, leaveType, startDate, endDate } = filters;
+
+    let query = { };
+    query.employeeId = employeeId;
+
+    if (status) {
+      const statuses = status.split(',').map(s => s.trim().toLowerCase());
+      query.status = { $in: statuses };
+    }
+
+    if (leaveType) {
+      query.leaveType = leaveType.toLowerCase();
+    }
+
+    const start = startDate
+      ? new Date(startDate)
+      : new Date(new Date().getFullYear(), 0, 1);
+
+    const end = endDate
+      ? new Date(endDate)
+      : new Date(new Date().getFullYear(), 11, 31, 23, 59, 59);
+
+    query.startDate = { $lte: end };
+    query.endDate = { $gte: start };
+
+    const skip = (page - 1) * limit;
+    const total = await LeaveRequest.countDocuments(query);
+
+    const requests = await LeaveRequest.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+
+    return {
+      requests,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1,
+      },
+    };
+  }
+
+  getTeamLeaves = async (managerId, filters) => {
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      leaveType,
+      employeeEmail,
+      startDate,
+      endDate,
+    } = filters;
+
+    const query = { managerId };
+
+    if (status) {
+      const statuses = status.split(',').map(s => s.trim().toLowerCase());
+      query.status = { $in: statuses };
+    }
+
+    if (leaveType) {
+      query.leaveType = leaveType.toLowerCase();
+    }
+
+    if (employeeEmail) {
+      query.employeeEmail = employeeEmail;
+    }
+
+    const start = startDate
+      ? new Date(startDate)
+      : new Date(new Date().getFullYear(), 0, 1); // default: Jan 1st of current year
+
+    const end = endDate
+      ? new Date(endDate)
+      : new Date(new Date().getFullYear(), 11, 31, 23, 59, 59); // default: Dec 31st
+
+    query.startDate = { $lte: end };
+    query.endDate = { $gte: start };
+
+    const skip = (page - 1) * limit;
+    const total = await LeaveRequest.countDocuments(query);
+
+    const requests = await LeaveRequest.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
+
+    return {
+      requests,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1,
+      },
+    };
   }
 
 

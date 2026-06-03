@@ -4,6 +4,7 @@ const createLeaveRoutes = (leaveController) => {
     const router = express.Router();
     router.use(authenticate);
     router.post('/', authorize(['employee']), leaveController.requestLeave);
+    router.get('/my', authorize(['employee']), leaveController.getMyLeaves);
     router.get('/', authorize(['admin', 'manager']), leaveController.getTeamLeaves);
     router.put('/:id/review', authorize(['manager', 'admin']), leaveController.reviewLeave);
     router.put('/:id/cancel', authorize(['employee']), leaveController.cancelLeave);
