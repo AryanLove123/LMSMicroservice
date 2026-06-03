@@ -121,7 +121,7 @@ const createServiceLogger = (serviceName) => {
     const logger = createLogger({
         level: process.env.LOG_LEVEL || 'info',
         format: combine(traceContextFormat(), timestamp(), errors({ stack: true }), json()),
-        defaultMeta: { service: serviceName },
+        defaultMeta: { service: serviceName, instance: process.env.INSTANCE_ID || '1'},
         transports: logTransports,
         exceptionHandlers: [new transports.Console()],
         rejectionHandlers: [new transports.Console()],
