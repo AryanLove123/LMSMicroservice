@@ -46,12 +46,27 @@ class SagaOrchestrator {
                     }
                 );
                 this.logger.info('[SagaOrchestrator] Approval event published to RabbitMQ', { sagaId, leaveId: LeaveRequest._id });
+                return {
+                    accepted: true,
+                    sagaId,
+                    leaveId: LeaveRequest._id.toString(),
+                    status: LeaveRequest.status,
+                    sagaStatus: LeaveRequest.sagaStatus,
+                    message: 'Leave approval is being processed, and you will be notified once it is complete.',
+                };
             } catch (error) {
-                this.logger.error('[SagaOrchestrator] Failed to publish approval event to RabbitMQ', { sagaId, leaveId: LeaveRequest._id, error: error.message });
+                this.logger.error('[SagaOrchestrator] Failed to publish approval event to RabbitMQ - compensating immediately', { sagaId, leaveId: LeaveRequest._id, error: error.message });
                 span.recordException(error);
                 await this._compensateApproval(LeaveRequest, 'Failed to send balance deduction command');
             }
-            return LeaveRequest;
+            return {
+                accepted: false,
+                sagaId,
+                leaveId: LeaveRequest._id.toString(),
+                status: LEAVE_STATUS.PENDING,
+                sagaStatus: SAGA_STATUS.COMPENSATING,
+                message: 'Leave approval could not be processed at the moment. The request has been reverted to pending.',
+            };
         });
     }
 
@@ -94,7 +109,14 @@ class SagaOrchestrator {
                 leaveId: LeaveRequest._id,
                 employeeId: LeaveRequest.employeeId,
             });
-            return LeaveRequest;
+            return {
+                accepted: true,
+                sagaId,
+                leaveId: LeaveRequest._id.toString(),
+                status: LeaveRequest.status,
+                sagaStatus: LeaveRequest.sagaStatus,
+                message: 'Leave request rejected successfully, and you will be notified.',
+            };
         });
     }
 

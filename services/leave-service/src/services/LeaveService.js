@@ -144,7 +144,8 @@ class LeaveService {
         });
       }
 
-      return this.sagaOrchestrator.startApprovalSaga(leaveRequest, comments);
+      const sagaResult = this.sagaOrchestrator.startApprovalSaga(leaveRequest, comments);
+      return sagaResult;
 
     } else if (action === 'reject') {
       return this.sagaOrchestrator.startRejectionSaga(leaveRequest, comments);

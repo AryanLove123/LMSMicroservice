@@ -1,6 +1,6 @@
 const { LeaveValidator } = require('../validators/LeaveValidators');
 const ApiResponse = require('../../../../shared/utils/ApiResponse');
-
+const { SAGA_STATUS } = require('../../../../shared/constants/constant');
 class LeaveController {
   constructor(leaveService) {
     this.leaveService = leaveService;
@@ -17,8 +17,25 @@ class LeaveController {
   reviewLeave = async (req, res, next) => {
     try {
       const body = LeaveValidator.validateReviewLeave(req.body);
-      const reviewedLeave = await this.leaveService.reviewLeave(req.user.userId, req.params.id, body);
-      return ApiResponse.ok(res, 'Leave request reviewed successfully', reviewedLeave);
+      const result = await this.leaveService.reviewLeave(req.user.userId, req.params.id, body);
+      if (result.sagaStatus === SAGA_STATUS.STARTED) {
+        return res.status(202).json({
+          success: true,
+          message: result.message,
+          data: {
+            leaveId: result.leaveId,
+            sagaId: result.sagaId,
+            status: result.status,
+            sagaStatus: result.sagaStatus,
+          },
+        });
+      }
+      return ApiResponse.ok(res, result.message || 'Leave request reviewed successfully', {
+        leaveId: result.leaveId,
+        sagaId: result.sagaId,
+        status: result.status,
+        sagaStatus: result.sagaStatus,
+      });
     } catch (error) { next(error); }
 
   }
