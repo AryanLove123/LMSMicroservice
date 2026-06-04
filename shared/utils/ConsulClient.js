@@ -9,15 +9,17 @@ class ConsulClient {
     }
 
     async register(serviceName, servicePort, serviceId = null) {
-        const id = serviceId || `${serviceName}-${process.env.HOSTNAME || 'local'}`;
+        const instanceSuffix = process.env.INSTANCE_ID || process.env.HOSTNAME || 'local';
+        const id = serviceId || `${serviceName}-${instanceSuffix}`;
+        const address = process.env.HOSTNAME || serviceName;
         const payload = {
             ID: id,
             Name: serviceName,
-            Address: serviceName,   // Docker container name = hostname
+            Address: address,   // Docker container name = hostname
             Port: parseInt(servicePort),
             Tags: ['microservice', 'lms'],
             Check: {
-                HTTP: `http://${serviceName}:${servicePort}/health`,
+                HTTP: `http://${address}:${servicePort}/health`,
                 Interval: '15s',
                 Timeout: '5s',
                 DeregisterCriticalServiceAfter: '2m',
