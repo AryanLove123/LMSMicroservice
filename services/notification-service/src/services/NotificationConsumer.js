@@ -38,7 +38,7 @@ class NotificationConsumer {
         this.logger.info('[NotificationConsumer] Started listening for notification events');
     }
 
-    async handleLeaveRequested(msg) {
+     handleLeaveRequested = async (msg) => {
         this.logger.info('[NotificationConsumer] Received leave requested event', { msg }); 
         try {
             await this.notificationService.notifyManagerOfLeaveRequest(msg);
@@ -48,7 +48,7 @@ class NotificationConsumer {
         }
     }
 
-    async handleLeaveApproval(msg) {
+    handleLeaveApproval = async (msg) => {
         this.logger.info('[NotificationConsumer] Received leave approval event', { msg }); 
         try {
             await this.notificationService.notifyEmployeeOfLeaveApproval(msg);
@@ -58,7 +58,7 @@ class NotificationConsumer {
         }
     }   
 
-    async handleLeaveRejection(msg) {
+    handleLeaveRejection = async (msg) => {
         this.logger.info('[NotificationConsumer] Received leave rejection event', { msg });
         try {
             await this.notificationService.notifyEmployeeOfLeaveRejection(msg);
@@ -68,7 +68,7 @@ class NotificationConsumer {
         }
     }
 
-    async handleLeaveCancellation(msg) {
+    handleLeaveCancellation = async (msg) => {
         this.logger.info('[NotificationConsumer] Received leave cancellation event', { msg });
         try {
             await this.notificationService.notifyEmployeeOfLeaveCancellation(msg);

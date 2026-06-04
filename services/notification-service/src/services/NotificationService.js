@@ -1,17 +1,17 @@
 const { Notification, NOTIFICATION_CHANNELS, NOTIFICATION_STATUS } = require('../models/Notification');
 const { NOTIFICATION_TYPES } = require('../../../../shared/constants/constant');
 const { employeeTemplate, managerTemplate } = require('../templates/leaveRequestedTemplate');
-const { approvalTemplate }  = require('../templates/leaveApprovedTemplate');
+const { approvalTemplate } = require('../templates/leaveApprovedTemplate');
 const { rejectionTemplate } = require('../templates/leaveRejectedTemplate');
-const { wrapHtml }          = require('../templates/layoutTemplate');
+const { wrapHtml } = require('../templates/layoutTemplate');
 const EmailDriver = require('../utils/EmailDriver');
 const { cancellationTemplate } = require('../templates/leaveCancellationTemplate');
 
 class NotificationService {
     constructor(logger, rabbitMQ, driver) {
-        this.logger  = logger;
+        this.logger = logger;
         this.rabbitMQ = rabbitMQ;
-        this.driver  = driver;
+        this.driver = driver;
     }
 
     // ─── internal dispatch ─────────────────────────────────────────────────────
@@ -42,7 +42,7 @@ class NotificationService {
             this.logger.error('[NotificationService] Driver failed to deliver notification', {
                 type, recipientId, error: err.message,
             });
-            doc.status       = NOTIFICATION_STATUS.FAILED;
+            doc.status = NOTIFICATION_STATUS.FAILED;
             doc.errorMessage = err.message;
         }
 
@@ -67,25 +67,25 @@ class NotificationService {
 
         // 1 — Confirmation to the employee
         await this._dispatch({
-            type:           NOTIFICATION_TYPES.LEAVE_REQUESTED,
-            recipientId:    employeeId,
+            type: NOTIFICATION_TYPES.LEAVE_REQUESTED,
+            recipientId: employeeId,
             recipientEmail: employeeEmail,
-            recipientName:  employeeName,
-            subject:        `Leave request submitted — ${leaveType}`,
-            html:           wrapHtml('Your Leave Request', employeeTemplate(templateData)),
-            metadata:       { leaveRequestId, leaveType, startDate, endDate, numberOfDays },
+            recipientName: employeeName,
+            subject: `Leave request submitted — ${leaveType}`,
+            html: wrapHtml('Your Leave Request', employeeTemplate(templateData)),
+            metadata: { leaveRequestId, leaveType, startDate, endDate, numberOfDays },
         });
 
         // 2 — Alert to the manager (skip silently if manager email is unavailable)
         if (managerEmail) {
             await this._dispatch({
-                type:           NOTIFICATION_TYPES.LEAVE_REQUESTED,
-                recipientId:    managerId,
+                type: NOTIFICATION_TYPES.LEAVE_REQUESTED,
+                recipientId: managerId,
                 recipientEmail: managerEmail,
-                recipientName:  managerName || 'Manager',
-                subject:        `Leave approval required — ${employeeName}`,
-                html:           wrapHtml('New Leave Request', managerTemplate(templateData)),
-                metadata:       { leaveRequestId, employeeId, employeeName, leaveType, startDate, endDate, numberOfDays },
+                recipientName: managerName || 'Manager',
+                subject: `Leave approval required — ${employeeName}`,
+                html: wrapHtml('New Leave Request', managerTemplate(templateData)),
+                metadata: { leaveRequestId, employeeId, employeeName, leaveType, startDate, endDate, numberOfDays },
             });
         } else {
             this.logger.warn('[NotificationService] Manager email not available; skipping manager notification', {
@@ -104,13 +104,13 @@ class NotificationService {
         } = msg;
 
         await this._dispatch({
-            type:           NOTIFICATION_TYPES.LEAVE_APPROVED,
-            recipientId:    employeeId,
+            type: NOTIFICATION_TYPES.LEAVE_APPROVED,
+            recipientId: employeeId,
             recipientEmail: employeeEmail,
-            recipientName:  employeeName,
-            subject:        `Your leave has been approved — ${leaveType}`,
-            html:           wrapHtml('Leave Approved', approvalTemplate({ employeeName, leaveType, startDate, endDate, numberOfDays, reason })),
-            metadata:       { leaveId, leaveType, startDate, endDate, numberOfDays },
+            recipientName: employeeName,
+            subject: `Your leave has been approved — ${leaveType}`,
+            html: wrapHtml('Leave Approved', approvalTemplate({ employeeName, leaveType, startDate, endDate, numberOfDays, reason })),
+            metadata: { leaveId, leaveType, startDate, endDate, numberOfDays },
         });
     }
 
@@ -124,13 +124,13 @@ class NotificationService {
         } = msg;
 
         await this._dispatch({
-            type:           NOTIFICATION_TYPES.LEAVE_REJECTED,
-            recipientId:    employeeId,
+            type: NOTIFICATION_TYPES.LEAVE_REJECTED,
+            recipientId: employeeId,
             recipientEmail: employeeEmail,
-            recipientName:  employeeName,
-            subject:        `Your leave request was not approved — ${leaveType}`,
-            html:           wrapHtml('Leave Not Approved', rejectionTemplate({ employeeName, leaveType, startDate, endDate, numberOfDays, reason: reviewComments || reason })),
-            metadata:       { leaveId, leaveType, startDate, endDate, numberOfDays, reviewComments },
+            recipientName: employeeName,
+            subject: `Your leave request was not approved — ${leaveType}`,
+            html: wrapHtml('Leave Not Approved', rejectionTemplate({ employeeName, leaveType, startDate, endDate, numberOfDays, reason: reviewComments || reason })),
+            metadata: { leaveId, leaveType, startDate, endDate, numberOfDays, reviewComments },
         });
     }
 
@@ -143,20 +143,21 @@ class NotificationService {
             leaveType, startDate, endDate, numberOfDays, reason, previousStatus
         } = msg;
         await this._dispatch({
-            type:           NOTIFICATION_TYPES.LEAVE_CANCELLED,
-            recipientId:    employeeId,
+            type: NOTIFICATION_TYPES.LEAVE_CANCELLED,
+            recipientId: employeeId,
             recipientEmail: employeeEmail,
-            recipientName:  employeeName,
-            subject:        `Your leave request has been cancelled — ${leaveType}`,
-            html:           wrapHtml('Leave Cancelled', cancellationTemplate({ employeeName, leaveType, startDate, endDate, numberOfDays, previousStatus })),
-            metadata:       { leaveId, leaveType, startDate, endDate, numberOfDays, reason },
+            recipientName: employeeName,
+            subject: `Your leave request has been cancelled — ${leaveType}`,
+            html: wrapHtml('Leave Cancelled', cancellationTemplate({ employeeName, leaveType, startDate, endDate, numberOfDays, previousStatus })),
+            metadata: { leaveId, leaveType, startDate, endDate, numberOfDays, reason },
         });
     }
 
     // ─── query ─────────────────────────────────────────────────────────────────
 
     async getNotifications(userId, { page = 1, limit = 10, type } = {}) {
-        const query = { recipientId: userId };
+        let query = {};
+        query.recipientId = userId;
         if (type) query.type = type;
 
         const [notifications, total] = await Promise.all([
@@ -174,6 +175,8 @@ class NotificationService {
                 page,
                 limit,
                 totalPages: Math.ceil(total / limit),
+                hasNext: page * limit < total,
+                hasPrev: page > 1,
             },
         };
     }
