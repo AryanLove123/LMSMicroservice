@@ -51,21 +51,17 @@ const SAGA_STATUS = {
 
 const RABBIT_EXCHANGES = {
   USER_EVENTS: 'user_events',
-  LEAVE_EVENTS: 'leave_events',
   SAGA_EVENTS: 'saga_events',
   NOTIFICATION_EVENTS: 'notification_events',
 }
 
 const RABBIT_QUEUES = {
   USER_CREATED: 'user_created',
-  LEAVE_REQUESTED: 'leave_requested',
-  LEAVE_APPROVED: 'leave_approved',
-  LEAVE_REJECTED: 'leave_rejected',
-  LEAVE_CANCELLED: 'leave_cancelled',
   SAGA_DEDUCT_BALANCE: 'saga_deduct_balance',
   SAGA_DEDUCT_SUCCESS: 'saga_deduct_success',
   SAGA_DEDUCT_FAILURE: 'saga_deduct_failure',
   SAGA_RESTORE_BALANCE: 'saga_restore_balance',
+  NOTIFY_LEAVE_REQUESTED: 'notify_leave_requested',
   NOTIFY_LEAVE_APPROVAL: 'notify_leave_approval',
   NOTIFY_LEAVE_REJECTION: 'notify_leave_rejection',
   NOTIFY_LEAVE_CANCELLATION: 'notify_leave_cancellation',
@@ -73,14 +69,11 @@ const RABBIT_QUEUES = {
 
 const RABBIT_ROUTING_KEYS = {
   USER_CREATED: 'user.created',
-  LEAVE_REQUESTED: 'leave.requested',
-  LEAVE_APPROVED: 'leave.approved',
-  LEAVE_REJECTED: 'leave.rejected',
-  LEAVE_CANCELLED: 'leave.cancelled',
   SAGA_DEDUCT_BALANCE: 'saga.deduct_balance',
   SAGA_DEDUCT_SUCCESS: 'saga.deduct_success',
   SAGA_DEDUCT_FAILURE: 'saga.deduct_failure',
   SAGA_RESTORE_BALANCE: 'saga.restore_balance',
+  NOTIFY_LEAVE_REQUESTED: 'notify.leave_requested',
   NOTIFY_LEAVE_APPROVAL: 'notify.leave_approval',
   NOTIFY_LEAVE_REJECTION: 'notify.leave_rejection',
   NOTIFY_LEAVE_CANCELLATION: 'notify.leave_cancellation',

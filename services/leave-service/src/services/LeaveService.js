@@ -73,8 +73,8 @@ class LeaveService {
       status: LEAVE_STATUS.PENDING,
     });
     if (this.rabbitMQ) {
-      await this.rabbitMQ.publish(RABBIT_EXCHANGES.LEAVE_EVENTS,
-        RABBIT_ROUTING_KEYS.LEAVE_REQUESTED,
+      await this.rabbitMQ.publish(RABBIT_EXCHANGES.NOTIFICATION_EVENTS,
+        RABBIT_ROUTING_KEYS.NOTIFY_LEAVE_REQUESTED,
         {
           leaveRequestId: leaveRequest._id,
           employeeId: employee.userId,

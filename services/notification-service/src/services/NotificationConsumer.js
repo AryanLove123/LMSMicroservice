@@ -9,9 +9,9 @@ class NotificationConsumer {
 
     async startListening() {
         await this.rabbitMQ.subscribe(
-            RABBIT_QUEUES.LEAVE_REQUESTED,
-            RABBIT_EXCHANGES.LEAVE_EVENTS,
-            RABBIT_ROUTING_KEYS.LEAVE_REQUESTED,
+            RABBIT_QUEUES.NOTIFY_LEAVE_REQUESTED,
+            RABBIT_EXCHANGES.NOTIFICATION_EVENTS,
+            RABBIT_ROUTING_KEYS.NOTIFY_LEAVE_REQUESTED,
             (msg) => this.handleLeaveRequested(msg)
         );
 
