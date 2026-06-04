@@ -57,6 +57,7 @@ const RABBIT_EXCHANGES = {
 
 const RABBIT_QUEUES = {
   USER_CREATED: 'user_created',
+  SEED_MANAGER_ASSIGN: 'seed.manager.assign.queue',
   SAGA_DEDUCT_BALANCE: 'saga_deduct_balance',
   SAGA_DEDUCT_SUCCESS: 'saga_deduct_success',
   SAGA_DEDUCT_FAILURE: 'saga_deduct_failure',
@@ -69,6 +70,7 @@ const RABBIT_QUEUES = {
 
 const RABBIT_ROUTING_KEYS = {
   USER_CREATED: 'user.created',
+  SEED_MANAGER_ASSIGN: 'seed.manager.assign',
   SAGA_DEDUCT_BALANCE: 'saga.deduct_balance',
   SAGA_DEDUCT_SUCCESS: 'saga.deduct_success',
   SAGA_DEDUCT_FAILURE: 'saga.deduct_failure',

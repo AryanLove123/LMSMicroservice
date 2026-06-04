@@ -3,6 +3,7 @@ const createEmployeeRoutes = require('./routes/EmployeeRoute');
 const EmployeeService = require('./services/EmployeeService');
 const EmployeeController = require('./controllers/EmployeeController');
 const { UserCreatedConsumer } = require('./services/UserCreatedConsumer');
+const SeedManagerAssignConsumer = require('./services/SeedManagerAssignConsumer');
 const SagaConsumer = require('./saga/SagaConsumer');
 const config = require('./config');
 
@@ -15,6 +16,10 @@ const createApp = async (logger, rabbitMQ = null) => {
     const empRoutes = createEmployeeRoutes(empController);
     const userCreatedConsumer = new UserCreatedConsumer(empService, rabbitMQ, logger);
     await userCreatedConsumer.startListening();
+
+    const seedConsumer = new SeedManagerAssignConsumer(rabbitMQ, logger);
+    await seedConsumer.startListening();
+
 
     const sagaConsumer = new SagaConsumer(rabbitMQ, logger, empService);
     await sagaConsumer.startListening();

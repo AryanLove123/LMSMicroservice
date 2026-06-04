@@ -135,5 +135,5 @@ employeeSchema.statics.findTeamByManagerId = function (managerId) {
 };
 
 const Employee = mongoose.model('Employee', employeeSchema);
-const LeaveBalance = mongoose.model('LeaveBalance', LeaveBalanceSchema);
-module.exports = { Employee, LeaveBalance };
+// const LeaveBalance = mongoose.model('LeaveBalance', LeaveBalanceSchema);
+module.exports = { Employee };

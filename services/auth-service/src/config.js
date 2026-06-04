@@ -22,6 +22,18 @@ const config = {
   bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS, 10),
   mongodbUri: process.env.MONGODB_URI,
   rabbitmqUri: process.env.RABBITMQ_URI,
+  seed: {
+    manager: {
+      name: process.env.SEED_MANAGER_NAME || 'Manager1',
+      email: process.env.SEED_MANAGER_EMAIL || 'manager1@gmail.com',
+      password: process.env.SEED_MANAGER_PASSWORD || 'Manager@1234',
+    },
+    employee: {
+      name: process.env.SEED_EMPLOYEE_NAME || 'Employee1',
+      email: process.env.SEED_EMPLOYEE_EMAIL || 'employee1@gmail.com',
+      password: process.env.SEED_EMPLOYEE_PASSWORD || 'Employee@1234',
+    },
+  },
 };
 
 module.exports = config;
