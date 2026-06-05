@@ -329,7 +329,8 @@ class LeaveService {
   calculateWorkingDays(start, end) {
     start.setHours(0, 0, 0, 0);
     end.setHours(0, 0, 0, 0);
-    return (end - start) / (1000 * 60 * 60 * 24);
+    const workingDays = (end - start) / (1000 * 60 * 60 * 24) + 1;
+    return workingDays;
   }
 }
 

@@ -28,6 +28,7 @@ const NOTIFICATION_TYPES ={
   LEAVE_APPROVED: 'LEAVE_APPROVED',
   LEAVE_REJECTED: 'LEAVE_REJECTED',
   LEAVE_CANCELLED: 'LEAVE_CANCELLED',
+  LEAVE_APPROVAL_FAILURE: 'LEAVE_APPROVAL_FAILURE',
 };
 
 const NOTIFICATION_CHANNELS = {
@@ -66,6 +67,7 @@ const RABBIT_QUEUES = {
   NOTIFY_LEAVE_APPROVAL: 'notify_leave_approval',
   NOTIFY_LEAVE_REJECTION: 'notify_leave_rejection',
   NOTIFY_LEAVE_CANCELLATION: 'notify_leave_cancellation',
+  NOTIFY_APPROVAL_FAILURE: 'notify_approval_failure',
 }
 
 const RABBIT_ROUTING_KEYS = {
@@ -79,6 +81,7 @@ const RABBIT_ROUTING_KEYS = {
   NOTIFY_LEAVE_APPROVAL: 'notify.leave_approval',
   NOTIFY_LEAVE_REJECTION: 'notify.leave_rejection',
   NOTIFY_LEAVE_CANCELLATION: 'notify.leave_cancellation',
+  NOTIFY_APPROVAL_FAILURE: 'notify.approval_failure',
 }
 
 

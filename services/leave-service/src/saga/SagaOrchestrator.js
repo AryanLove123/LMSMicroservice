@@ -219,6 +219,32 @@ class SagaOrchestrator {
             }
             this.logger.warn('[SagaOrchestrator] Handling deduction failure, initiating compensation', { sagaId, leaveId, reason });
             await this._compensateApproval(leaveRequest, reason);
+
+            try {
+                await this.rabbitMQ.publish(
+                    RABBIT_EXCHANGES.NOTIFICATION_EVENTS,
+                    RABBIT_ROUTING_KEYS.NOTIFY_APPROVAL_FAILURE,
+                    {
+                        sagaId,
+                        leaveId,
+                        employeeId: leaveRequest.employeeId,
+                        employeeName: leaveRequest.employeeName,
+                        employeeEmail: leaveRequest.employeeEmail,
+                        leaveType: leaveRequest.leaveType,
+                        startDate: leaveRequest.startDate,
+                        endDate: leaveRequest.endDate,
+                        numberOfDays: leaveRequest.numberOfDays,
+                        reason: leaveRequest.reason,
+                        failureReason: reason,
+                    }
+                );
+                this.logger.info('[SagaOrchestrator] Approval failure notification event published to RabbitMQ', { sagaId, leaveId });
+            } catch (error) {
+                span.recordException(error);
+                this.logger.error('[SagaOrchestrator] Failed to publish approval failure notification event to RabbitMQ', {
+                    sagaId, leaveId, error: error.message
+                });
+            }
         });
     }
 }

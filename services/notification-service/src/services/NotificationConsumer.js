@@ -35,6 +35,13 @@ class NotificationConsumer {
             RABBIT_ROUTING_KEYS.NOTIFY_LEAVE_CANCELLATION,
             (msg) => this.handleLeaveCancellation(msg)
         );
+
+        await this.rabbitMQ.subscribe(
+            RABBIT_QUEUES.NOTIFY_APPROVAL_FAILURE,
+            RABBIT_EXCHANGES.NOTIFICATION_EVENTS,
+            RABBIT_ROUTING_KEYS.NOTIFY_APPROVAL_FAILURE,
+            (msg) => this.handleLeaveApprovalFailure(msg)
+        );
         this.logger.info('[NotificationConsumer] Started listening for notification events');
     }
 
@@ -74,6 +81,16 @@ class NotificationConsumer {
             await this.notificationService.notifyEmployeeOfLeaveCancellation(msg);
         } catch (error) {
             this.logger.error('[NotificationConsumer] Error handling leave cancellation event', { error: error.message, msg });
+            throw error;
+        }
+    }
+
+    handleLeaveApprovalFailure = async (msg) => {
+        this.logger.info('[NotificationConsumer] Received leave approval failure event', { msg });
+        try {
+            await this.notificationService.notifyEmployeeOfLeaveApprovalFailure(msg);
+        } catch (error) {
+            this.logger.error('[NotificationConsumer] Error handling leave approval failure event', { error: error.message, msg });
             throw error;
         }
     }

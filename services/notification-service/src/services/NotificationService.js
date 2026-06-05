@@ -6,6 +6,7 @@ const { rejectionTemplate } = require('../templates/leaveRejectedTemplate');
 const { wrapHtml } = require('../templates/layoutTemplate');
 const EmailDriver = require('../utils/EmailDriver');
 const { cancellationTemplate } = require('../templates/leaveCancellationTemplate');
+const {approvalFailureTemplate} = require('../templates/approvalFailureTemplate');  
 
 class NotificationService {
     constructor(logger, rabbitMQ, driver) {
@@ -150,6 +151,22 @@ class NotificationService {
             subject: `Your leave request has been cancelled — ${leaveType}`,
             html: wrapHtml('Leave Cancelled', cancellationTemplate({ employeeName, leaveType, startDate, endDate, numberOfDays, previousStatus })),
             metadata: { leaveId, leaveType, startDate, endDate, numberOfDays, reason },
+        });
+    }
+
+    async notifyEmployeeOfLeaveApprovalFailure(msg) {
+        const {
+            leaveId, employeeId, employeeName, employeeEmail,
+            leaveType, startDate, endDate, numberOfDays, reason, failureReason
+        } = msg;
+        await this._dispatch({
+            type: NOTIFICATION_TYPES.LEAVE_APPROVAL_FAILURE,
+            recipientId: employeeId,
+            recipientEmail: employeeEmail,
+            recipientName: employeeName,
+            subject: `Issue with your leave approval — ${leaveType}`,
+            html: wrapHtml('Leave Approval Issue', approvalFailureTemplate({ employeeName, leaveType, startDate, endDate, numberOfDays, reason, failureReason })),
+            metadata: { leaveId, leaveType, startDate, endDate, numberOfDays, reason, failureReason },
         });
     }
 
