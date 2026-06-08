@@ -19,7 +19,7 @@ This guide walks through getting the project running from scratch on a new machi
 ## 1. Clone the Repository
 
 ```bash
-https://github.com/AryanLove123/LMSMicroservice.git
+git clone https://github.com/AryanLove123/LMSMicroservice.git
 cd LMS-Microservice
 ```
 
@@ -77,7 +77,7 @@ JAEGER_OTLP_PORT=4318
 CONSUL_HOST=consul
 CONSUL_PORT=8500
 
-Instance_ID=1
+INSTANCE_ID=1
 ```
 
 > **Tip:** generate secrets with `openssl rand -hex 32`
@@ -132,7 +132,7 @@ SERVICE_NAME=notification-service
 MONGODB_URI=mongodb://root:Notification%40123@mongo-notification:27017/notification_db?authSource=admin
 
 # Set to "log" to print notifications to stdout instead of sending email
-NOTIFICATION_CHANNEL=log
+# NOTIFICATION_CHANNEL=log
 
 SMTP_HOST=mailpit
 SMTP_PORT=1025
@@ -185,6 +185,7 @@ docker compose logs -f auth-service
 | **Jaeger UI** | http://localhost:16686 | — |
 | **Kibana** | http://localhost:5601 | — |
 | **Elasticsearch** | http://localhost:9200 | — |
+| **Mailpit** | http://localhost:8025 | — |
 
 In Consul UI you should see all four services listed with green health checks within ~30 s of startup.
 
