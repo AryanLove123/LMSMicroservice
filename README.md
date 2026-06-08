@@ -389,7 +389,7 @@ Authorization: Bearer <access_token>
 
 1. Open http://localhost:5601
 2. Go to **Discover**
-3. Create a data view for the `lms-logs-*` index pattern
+3. Create a data view for the `leave-management-*` index pattern
 4. Filter by `service`, `level`, or `traceId` (use `traceId` to correlate a Kibana log entry with a Jaeger trace)
 
 ### Check Service Health in Consul
